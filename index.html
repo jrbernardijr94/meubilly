@@ -1116,6 +1116,8 @@ let authProfile=null;
 let authReady=false;
 let workspaceInvites=[];
 let workspaceMembership=null;
+let workspaceUsers=[];
+let currentWorkspace=null;
 let adminUsers=[];
 let adminUsersLoading=false;
 let embeddedRecoveryPrompted=false;
@@ -1226,16 +1228,20 @@ function accountAvatarHtml(sizeClass=''){
  return `<div class="settings-user-avatar ${sizeClass}">${esc(initial)}</div>`;
 }
 async function loadWorkspaceAccess(){
- workspaceInvites=[]; workspaceMembership=null;
+ workspaceInvites=[]; workspaceMembership=null; workspaceUsers=[]; currentWorkspace=null;
  if(!authUser||!authProfile?.current_workspace_id)return;
  const wid=authProfile.current_workspace_id;
  try{
-   const [{data:member,error:memberError},{data:invites,error:inviteError}]=await Promise.all([
+   const [{data:member,error:memberError},{data:invites,error:inviteError},{data:usersData,error:usersError},{data:workspaceData,error:workspaceError}]=await Promise.all([
      billySupabase.from('workspace_members').select('role,status,workspace_id').eq('workspace_id',wid).eq('user_id',authUser.id).maybeSingle(),
-     billySupabase.from('workspace_invites').select('id,email,role,status,created_at').eq('workspace_id',wid).order('created_at',{ascending:false})
+     billySupabase.from('workspace_invites').select('id,email,name,role,status,created_at').eq('workspace_id',wid).order('created_at',{ascending:false}),
+     billySupabase.rpc('get_current_workspace_users'),
+     billySupabase.from('workspaces').select('id,name,max_members,plan,status').eq('id',wid).maybeSingle()
    ]);
    if(memberError)console.warn('Membership:',memberError); else workspaceMembership=member||null;
    if(inviteError)console.warn('Invites:',inviteError); else workspaceInvites=invites||[];
+   if(usersError)console.warn('Workspace users:',usersError); else workspaceUsers=usersData||[];
+   if(workspaceError)console.warn('Workspace:',workspaceError); else currentWorkspace=workspaceData||null;
  }catch(err){console.warn('Workspace access:',err)}
 }
 async function applySupabaseSession(session){
@@ -1243,13 +1249,19 @@ async function applySupabaseSession(session){
  currentUser=authUser?.email||'';
  remoteStateReady=false;
  if(authUser){
+   try{
+     const {error:claimError}=await billySupabase.rpc('claim_pending_workspace_invite');
+     if(claimError)console.warn('Claim workspace invite:',claimError);
+   }catch(err){console.warn('Claim workspace invite:',err)}
    await loadSupabaseProfile();
    await loadWorkspaceAccess();
    let remoteHasData=false;
    try{remoteHasData=await loadWorkspaceFinancialData()}catch(err){console.error('BILLY dados:',err);state=emptyData();ensureState();remoteStateReady=true;}
    render();
-   setTimeout(async()=>{await maybeOfferLegacyMigration(remoteHasData);setTimeout(()=>maybeOfferEmbeddedRecovery(),120)},80);
- }else{authProfile=null;workspaceInvites=[];workspaceMembership=null;state=emptyData();ensureState();remoteStateReady=false;renderLogin()}
+   // Dados antigos nunca são oferecidos automaticamente para outras contas.
+   // A recuperação embarcada é exclusiva da conta principal do Junior.
+   setTimeout(()=>maybeOfferEmbeddedRecovery(),80);
+ }else{authProfile=null;workspaceInvites=[];workspaceMembership=null;workspaceUsers=[];currentWorkspace=null;state=emptyData();ensureState();remoteStateReady=false;renderLogin()}
 }
 async function initSupabaseAuth(){
  try{
@@ -1501,8 +1513,13 @@ function renderCadastro(){
  let incomeRows=incomeCategories().map(c=>catEditRow(c,catEmoji(c),c,'income')).join('');
  let expenseRows=expenseCategories().map(c=>catEditRow(c,catEmoji(c),c,'expense')).join('');
  let pendingInvites=workspaceInvites.filter(i=>i.status==='pending');
- let userRows=`<div class="settings-user-row">${accountAvatarHtml()}<div class="settings-user-copy"><strong>${esc(authProfile?.name||'Você')}</strong><small>${esc(authUser?.email||'')} · ${esc(workspaceMembership?.role||'owner')}</small></div><span class="badge green">Ativo</span></div>`+pendingInvites.map(i=>`<div class="settings-user-row"><div class="settings-user-avatar">${esc((i.email||'?').charAt(0).toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(i.email)}</strong><small>${esc(i.role==='admin'?'Administrador':'Usuário')} · aguardando confirmação</small></div><span class="badge yellow">Pendente</span></div>`).join('');
- let accessCount=1+pendingInvites.length;
+ let activeWorkspaceUsers=(workspaceUsers||[]).filter(u=>u.entry_type==='member'&&u.status==='active');
+ let listedPending=(workspaceUsers||[]).filter(u=>u.entry_type==='invite'&&u.status==='pending');
+ let visiblePending=listedPending.length?listedPending:pendingInvites.map(i=>({entry_type:'invite',name:i.name||'',email:i.email,role:i.role,status:i.status}));
+ let userRows=activeWorkspaceUsers.map(u=>`<div class="settings-user-row"><div class="settings-user-avatar">${esc(((u.name||u.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(u.name||u.email||'Usuário')}</strong><small>${esc(u.email||'')} · ${esc(u.role==='owner'?'Proprietário':u.role==='admin'?'Administrador':'Usuário')}</small></div><span class="badge green">Ativo</span></div>`).join('')+visiblePending.map(i=>`<div class="settings-user-row"><div class="settings-user-avatar">${esc(((i.name||i.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(i.name||i.email)}</strong><small>${esc(i.email||'')} · ${esc(i.role==='admin'?'Administrador':'Usuário')} · aguardando primeiro acesso</small></div><span class="badge yellow">Pendente</span></div>`).join('');
+ if(!userRows)userRows=`<div class="settings-user-row">${accountAvatarHtml()}<div class="settings-user-copy"><strong>${esc(authProfile?.name||'Você')}</strong><small>${esc(authUser?.email||'')} · ${esc(workspaceMembership?.role||'owner')}</small></div><span class="badge green">Ativo</span></div>`;
+ let accessCount=activeWorkspaceUsers.length+visiblePending.length;
+ let maxMembers=Number(currentWorkspace?.max_members||2);
  let savedTab=localStorage.getItem('fin.settingsTab')||'users';
  let catMode=localStorage.getItem('fin.settingsCategoryTab')||'income';
  if(savedTab==='income'||savedTab==='expense'){catMode=savedTab==='expense'?'expense':'income';savedTab='categories';}
@@ -1524,13 +1541,13 @@ function renderCadastro(){
    </div>
 
    <section class="settings-tab-panel ${active==='users'?'active':''}" data-settings-panel="users">
-     <div class="settings-section-head"><div><h3>Usuários</h3><p>Adicione pessoas para acessar o mesmo financeiro. O plano atual permite até 2 acessos.</p></div></div>
+     <div class="settings-section-head"><div><h3>Usuários</h3><p>Adicione pessoas para acessar o mesmo financeiro. O plano atual permite até ${maxMembers} acessos.</p></div></div>
      <div class="settings-card settings-create-user">
-       <div class="settings-card-title"><strong>Novo usuário</strong><small>O BILLY envia um e-mail para a pessoa confirmar o acesso.</small></div>
-       <div class="settings-user-form"><div class="field"><label>Nome</label><input id="newUserName" placeholder="Nome do usuário"></div><div class="field"><label>E-mail</label><input id="newUserEmail" type="email" placeholder="email@exemplo.com"></div><div class="field"><label>Permissão</label><select id="newUserRole"><option value="member">Usuário</option><option value="admin">Administrador</option></select></div><button type="button" class="btn green settings-add-user" onclick="addUser()" ${accessCount>=2?'disabled':''}>+ Enviar convite</button></div>
-       ${accessCount>=2?'<small class="settings-auth-note">Limite atual de 2 usuários atingido.</small>':''}
+       <div class="settings-card-title"><strong>Novo usuário</strong><small>Autorize o e-mail. Depois a pessoa entra com Google ou cria a conta usando exatamente esse e-mail.</small></div>
+       <div class="settings-user-form"><div class="field"><label>Nome</label><input id="newUserName" placeholder="Nome do usuário"></div><div class="field"><label>E-mail</label><input id="newUserEmail" type="email" placeholder="email@exemplo.com"></div><div class="field"><label>Permissão</label><select id="newUserRole"><option value="member">Usuário</option><option value="admin">Administrador</option></select></div><button type="button" class="btn green settings-add-user" onclick="addUser()" ${accessCount>=maxMembers?'disabled':''}>+ Adicionar usuário</button></div>
+       ${accessCount>=maxMembers?`<small class="settings-auth-note">Limite atual de ${maxMembers} usuários atingido.</small>`:''}
      </div>
-     <div class="settings-card"><div class="settings-card-title"><strong>Acessos da conta</strong><small>${accessCount} de 2 acessos utilizados ou reservados.</small></div><div class="settings-user-list">${userRows}</div></div>
+     <div class="settings-card"><div class="settings-card-title"><strong>Acessos da conta</strong><small>${accessCount} de ${maxMembers} acessos utilizados ou reservados.</small></div><div class="settings-user-list">${userRows}</div></div>
    </section>
 
    <section class="settings-tab-panel ${active==='categories'?'active':''}" data-settings-panel="categories">
@@ -1562,8 +1579,8 @@ function renderCadastro(){
      <small class="settings-auth-note">Conta autenticada pelo Supabase. Trial e cobrança estão preparados no banco, mas não bloqueiam o acesso nesta fase.</small>
      ${String(authUser?.email||'').toLowerCase()==='juniorbernardi@atrius.ind.br'?`<div class="settings-card legacy-recovery-card"><div class="settings-card-title"><strong>Recuperar base antiga do BILLY</strong><small>Encontramos no protótipo uma cópia da sua base anterior com categorias, cartões e lançamentos. Use somente na sua conta principal.</small></div><button type="button" class="btn primary" onclick="importEmbeddedLegacyData()" ${hasUsefulLocalData(state)?'disabled':''}>${hasUsefulLocalData(state)?'Base atual já possui dados':'Importar meus dados antigos'}</button></div>`:''}
      <div class="settings-danger-card">
-       <div class="settings-danger-copy"><span class="settings-danger-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><div><strong>Restaurar dados do zero</strong><small>O usuário escolhe exatamente o que deseja apagar. É possível zerar lançamentos, orçamentos, categorias e também os cartões cadastrados para recomeçar o BILLY com dados atuais.</small></div></div>
-       <button type="button" class="btn red settings-reset-btn" onclick="resetBillyFinancialData()">Restaurar do zero</button>
+       <div class="settings-danger-copy"><span class="settings-danger-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v6h6"></path></svg></span><div><strong>Restaurar / limpar dados</strong><small>Escolha o que deseja apagar e também o período. Você pode, por exemplo, excluir tudo antes de outubro e manter outubro em diante.</small></div></div>
+       <button type="button" class="btn red settings-reset-btn" onclick="resetBillyFinancialData()">Restaurar / limpar dados</button>
      </div>
    </section>
  </div>`;
@@ -1611,58 +1628,61 @@ function syncResetSelectAll(){
  let master=document.getElementById('resetSelectAll');
  if(master)master.checked=all.length>0&&all.every(el=>el.checked);
 }
+function resetItemMonthKey(item,kind){
+ if(kind==='budget')return String(item?.month||'').slice(0,7);
+ let raw=item?.type==='card'?(item?.invoiceMonth||item?.date||''):(item?.date||item?.invoiceMonth||'');
+ return String(raw||'').slice(0,7);
+}
+function shouldDeleteByResetPeriod(item,kind,mode,monthKey){
+ if(mode==='all')return true;
+ let key=resetItemMonthKey(item,kind);
+ if(!key)return false;
+ if(mode==='before')return key<monthKey;
+ if(mode==='from')return key>=monthKey;
+ if(mode==='only')return key===monthKey;
+ return false;
+}
 async function resetBillyFinancialData(){
+ let currentResetMonth=month?month():new Date().toISOString().slice(0,7);
  let first=await openConfirmModal({
-   title:'Restaurar dados do zero',
-   message:`<div class="reset-picker"><p class="reset-picker-text">Selecione o que deseja apagar agora:</p><label class="reset-option reset-option-all"><input type="checkbox" id="resetSelectAll" checked onchange="toggleResetSelectAll(this.checked)"><span><strong>Selecionar tudo</strong><small>Zera os dados financeiros e os cadastros para começar novamente.</small></span></label><div class="reset-picker-divider"></div><label class="reset-option"><input type="checkbox" class="reset-option-input" value="income" checked onchange="syncResetSelectAll()"><span><strong>Receitas</strong><small>Remove todos os lançamentos de receita.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="expense" checked onchange="syncResetSelectAll()"><span><strong>Despesas</strong><small>Remove todos os lançamentos de despesa.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="card" checked onchange="syncResetSelectAll()"><span><strong>Lançamentos de cartões e faturas</strong><small>Remove compras, parcelas e faturas importadas dos cartões.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="budgets" checked onchange="syncResetSelectAll()"><span><strong>Orçamentos</strong><small>Remove os valores previstos cadastrados.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="categories" checked onchange="syncResetSelectAll()"><span><strong>Categorias cadastradas</strong><small>Remove as categorias de receitas e despesas para você cadastrá-las novamente.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="cards" checked onchange="syncResetSelectAll()"><span><strong>Cartões cadastrados</strong><small>Remove os cartões, limites, fechamento e vencimento cadastrados.</small></span></label><div class="reset-picker-note"><strong>Usuários e aparência serão mantidos.</strong> Para evitar dados quebrados, ao apagar categorias também é necessário apagar os lançamentos; ao apagar cartões cadastrados, os lançamentos de cartões também devem ser apagados.</div></div>`,
+   title:'Restaurar / limpar dados',
+   message:`<div class="reset-picker"><p class="reset-picker-text">Selecione o que deseja apagar:</p><label class="reset-option reset-option-all"><input type="checkbox" id="resetSelectAll" checked onchange="toggleResetSelectAll(this.checked)"><span><strong>Selecionar tudo</strong><small>Seleciona todos os tipos de dados abaixo.</small></span></label><div class="reset-picker-divider"></div><label class="reset-option"><input type="checkbox" class="reset-option-input" value="income" checked onchange="syncResetSelectAll()"><span><strong>Receitas</strong><small>Remove lançamentos de receita dentro do período escolhido.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="expense" checked onchange="syncResetSelectAll()"><span><strong>Despesas</strong><small>Remove lançamentos de despesa dentro do período escolhido.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="card" checked onchange="syncResetSelectAll()"><span><strong>Lançamentos de cartões e faturas</strong><small>Remove compras, parcelas e faturas importadas dentro do período escolhido.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="budgets" checked onchange="syncResetSelectAll()"><span><strong>Orçamentos</strong><small>Remove os valores previstos dentro do período escolhido.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="categories" checked onchange="syncResetSelectAll()"><span><strong>Categorias cadastradas</strong><small>Cadastro global: só pode ser apagado quando o período for “Todo o histórico”.</small></span></label><label class="reset-option"><input type="checkbox" class="reset-option-input" value="cards" checked onchange="syncResetSelectAll()"><span><strong>Cartões cadastrados</strong><small>Cadastro global: só pode ser apagado quando o período for “Todo o histórico”.</small></span></label><div class="reset-picker-divider"></div><div class="reset-period-box"><div class="reset-period-title"><strong>Período dos lançamentos e orçamentos</strong><small>Ex.: para manter outubro em diante, escolha “Apagar antes de” e informe outubro.</small></div><div class="reset-period-grid"><div class="field"><label>Ação por período</label><select id="resetPeriodMode"><option value="all">Todo o histórico</option><option value="before">Apagar antes de...</option><option value="from">Apagar a partir de...</option><option value="only">Apagar somente o mês...</option></select></div><div class="field"><label>Mês de referência</label><input id="resetPeriodMonth" type="month" value="${currentResetMonth}"></div></div></div><div class="reset-picker-note"><strong>Usuários e aparência serão mantidos.</strong> Categorias e cartões são cadastros globais e não podem ser apagados parcialmente por período.</div></div>`,
    buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'Continuar',cls:'red'}]
  });
  if(first!=='confirm')return;
  let selected=[...document.querySelectorAll('.reset-option-input:checked')].map(el=>el.value);
- if(!selected.length){
-   toast('Selecione ao menos uma opção para apagar.');
-   return;
- }
- if(selected.includes('categories')&&(!selected.includes('income')||!selected.includes('expense')||!selected.includes('card'))){
-   toast('Para apagar as categorias, selecione também receitas, despesas e lançamentos de cartões/faturas.');
-   return;
- }
- if(selected.includes('cards')&&!selected.includes('card')){
-   toast('Para apagar os cartões cadastrados, selecione também os lançamentos de cartões e faturas.');
-   return;
- }
+ let periodMode=document.getElementById('resetPeriodMode')?.value||'all';
+ let periodMonth=document.getElementById('resetPeriodMonth')?.value||'';
+ if(!selected.length){toast('Selecione ao menos uma opção para apagar.');return;}
+ if(periodMode!=='all'&&!/^\d{4}-\d{2}$/.test(periodMonth)){toast('Selecione o mês de referência.');return;}
+ if(periodMode!=='all'&&(selected.includes('categories')||selected.includes('cards'))){toast('Categorias e cartões cadastrados só podem ser apagados usando “Todo o histórico”.');return;}
+ if(selected.includes('categories')&&(!selected.includes('income')||!selected.includes('expense')||!selected.includes('card'))){toast('Para apagar as categorias, selecione também receitas, despesas e lançamentos de cartões/faturas.');return;}
+ if(selected.includes('cards')&&!selected.includes('card')){toast('Para apagar os cartões cadastrados, selecione também os lançamentos de cartões e faturas.');return;}
  let summary=selected.map(key=>RESET_BILLY_LABELS[key]).filter(Boolean);
  let prettySummary=summary.length>1?summary.slice(0,-1).join(', ')+' e '+summary.slice(-1):summary[0];
+ let periodText='todo o histórico';
+ if(periodMode==='before')periodText=`os meses anteriores a ${periodMonth}`;
+ if(periodMode==='from')periodText=`${periodMonth} e os meses seguintes`;
+ if(periodMode==='only')periodText=`somente ${periodMonth}`;
  let second=await openConfirmModal({
-   title:'Confirmar restauração',
-   message:`<strong>Esta ação não pode ser desfeita.</strong><br><br>Você vai apagar <strong>${prettySummary}</strong> e manter usuários, categorias, cartões cadastrados e aparência. Deseja continuar?`,
+   title:'Confirmar limpeza',
+   message:`<strong>Esta ação não pode ser desfeita.</strong><br><br>Você vai apagar <strong>${prettySummary}</strong> em <strong>${periodText}</strong>.<br><br>Deseja continuar?`,
    buttons:[{key:'cancel',text:'Não, cancelar',cls:'ghost'},{key:'confirm',text:'Sim, apagar selecionados',cls:'red'}]
  });
  if(second!=='confirm')return;
  try{
-   if(selected.includes('income'))state.tx=state.tx.filter(t=>t.type!=='income');
-   if(selected.includes('expense'))state.tx=state.tx.filter(t=>t.type!=='expense');
-   if(selected.includes('card'))state.tx=state.tx.filter(t=>t.type!=='card');
-   if(selected.includes('budgets'))state.budgets=[];
-   if(selected.includes('categories')){
-     state.categories=[];
-     state.categoryMeta={};
-     state.categoryTypes={};
-   }
+   if(selected.includes('income'))state.tx=state.tx.filter(t=>!(t.type==='income'&&shouldDeleteByResetPeriod(t,'tx',periodMode,periodMonth)));
+   if(selected.includes('expense'))state.tx=state.tx.filter(t=>!(t.type==='expense'&&shouldDeleteByResetPeriod(t,'tx',periodMode,periodMonth)));
+   if(selected.includes('card'))state.tx=state.tx.filter(t=>!(t.type==='card'&&shouldDeleteByResetPeriod(t,'tx',periodMode,periodMonth)));
+   if(selected.includes('budgets'))state.budgets=state.budgets.filter(b=>!shouldDeleteByResetPeriod(b,'budget',periodMode,periodMonth));
+   if(selected.includes('categories')){state.categories=[];state.categoryMeta={};state.categoryTypes={};}
    if(selected.includes('cards'))state.cards=[];
    ensureState();
-   selectedInvoiceCard='';
-   selectedAnalysisCategory='';
-   localStorage.removeItem('fin.selectedCard');
-   localStorage.removeItem('fin.selectedCategory');
-   page='dashboard';
-   localStorage.setItem('fin.page','dashboard');
-   closeMobileMenu();
-   save();
+   selectedInvoiceCard='';selectedAnalysisCategory='';
+   localStorage.removeItem('fin.selectedCard');localStorage.removeItem('fin.selectedCategory');
+   page='dashboard';localStorage.setItem('fin.page','dashboard');closeMobileMenu();save();
    toast('Dados selecionados apagados com sucesso.');
- }catch(e){
-   toast('Não consegui restaurar os dados neste navegador.');
- }
+ }catch(e){toast('Não consegui restaurar os dados neste navegador.');}
 }
 
 function setSettingsCategoryMode(mode){
@@ -1702,11 +1722,11 @@ async function addUser(){
    const {data,error}=await billySupabase.functions.invoke('create-workspace-user',{body:{name,email,role}});
    if(error)throw error;
    if(data?.error)throw new Error(data.error);
-   toast(data?.message||'Convite enviado com sucesso.');
+   toast(data?.message||'Usuário autorizado. Ele já pode entrar no BILLY.');
    await loadWorkspaceAccess();
    renderCadastro();
- }catch(err){console.error(err);toast(String(err?.message||'Não foi possível enviar o convite.'))}
- finally{if(btn){btn.disabled=false;btn.textContent='+ Enviar convite'}}
+ }catch(err){console.error(err);toast(String(err?.message||'Não foi possível adicionar o usuário.'))}
+ finally{if(btn){btn.disabled=false;btn.textContent='+ Adicionar usuário'}}
 }
 async function deleteUser(id){let u=users.find(x=>x.id===id);if(!u||users.length<=1)return;let act=await openConfirmModal({title:'Excluir usuário',message:'Excluir este usuário?',buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'Excluir',cls:'red'}]});if(act!=='confirm')return;let old=[...users];users=users.filter(x=>x.id!==id);if(!saveUsers()){users=old;return}if(currentUser===u.email)logout();else renderCadastro()}
 
@@ -2945,6 +2965,11 @@ body.light-theme .appearance-theme-icon{background:#eef3f8;color:#64748b}
 .reset-picker-note strong{color:var(--text)}
 .reset-option-all{background:rgba(37,99,235,.08);border-color:rgba(59,130,246,.30)}
 .reset-picker-divider{height:1px;background:var(--line);margin:1px 2px}
+.reset-period-box{display:grid;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:rgba(11,18,32,.32)}
+.reset-period-title{display:grid;gap:3px}.reset-period-title small{color:var(--muted);font-size:12px;line-height:1.4}
+.reset-period-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:10px}.reset-period-grid .field{margin:0}
+body.light-theme .reset-period-box{background:#fbfdff;border-color:#d7e0ea}
+@media(max-width:760px){.reset-period-grid{grid-template-columns:1fr}}
 body.light-theme .reset-option{background:#fbfdff;border-color:#d7e0ea}
 body.light-theme .reset-option-all{background:#eff6ff;border-color:#bfdbfe}
 body.light-theme .settings-danger-card{background:linear-gradient(135deg,#fff7f7,#fffafa);border-color:#fecaca;box-shadow:0 10px 24px rgba(127,29,29,.045)}
