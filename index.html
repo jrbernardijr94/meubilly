@@ -1516,7 +1516,8 @@ function renderCadastro(){
  let activeWorkspaceUsers=(workspaceUsers||[]).filter(u=>u.entry_type==='member'&&u.status==='active');
  let listedPending=(workspaceUsers||[]).filter(u=>u.entry_type==='invite'&&u.status==='pending');
  let visiblePending=listedPending.length?listedPending:pendingInvites.map(i=>({entry_type:'invite',name:i.name||'',email:i.email,role:i.role,status:i.status}));
- let userRows=activeWorkspaceUsers.map(u=>`<div class="settings-user-row"><div class="settings-user-avatar">${esc(((u.name||u.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(u.name||u.email||'Usuário')}</strong><small>${esc(u.email||'')} · ${esc(u.role==='owner'?'Proprietário':u.role==='admin'?'Administrador':'Usuário')}</small></div><span class="badge green">Ativo</span></div>`).join('')+visiblePending.map(i=>`<div class="settings-user-row"><div class="settings-user-avatar">${esc(((i.name||i.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(i.name||i.email)}</strong><small>${esc(i.email||'')} · ${esc(i.role==='admin'?'Administrador':'Usuário')} · aguardando primeiro acesso</small></div><span class="badge yellow">Pendente</span></div>`).join('');
+ let canManageWorkspaceUsers=['owner','admin'].includes(workspaceMembership?.role||'');
+ let userRows=activeWorkspaceUsers.map(u=>{let isOwner=u.role==='owner';let isMe=u.user_id===authUser?.id;let actions=canManageWorkspaceUsers&&!isOwner?`<div class="settings-user-actions"><button type="button" class="btn small ghost" onclick="openWorkspaceUserEditor('member','${u.user_id}','${encodeURIComponent(u.name||'')}','${encodeURIComponent(u.email||'')}','${u.role}')">Editar</button>${!isMe?`<button type="button" class="btn small red" onclick="removeWorkspaceAccess('member','${u.user_id}','${encodeURIComponent(u.email||'')}')">Excluir</button>`:''}</div>`:'';return `<div class="settings-user-row"><div class="settings-user-avatar">${esc(((u.name||u.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(u.name||u.email||'Usuário')}</strong><small>${esc(u.email||'')} · ${esc(isOwner?'Proprietário':u.role==='admin'?'Administrador':'Usuário')}</small></div><div class="settings-user-status"><span class="badge green">Ativo</span>${actions}</div></div>`}).join('')+visiblePending.map(i=>{let actions=canManageWorkspaceUsers?`<div class="settings-user-actions"><button type="button" class="btn small ghost" onclick="openWorkspaceUserEditor('invite','', '${encodeURIComponent(i.name||'')}','${encodeURIComponent(i.email||'')}','${i.role}')">Editar</button><button type="button" class="btn small red" onclick="removeWorkspaceAccess('invite','','${encodeURIComponent(i.email||'')}')">Excluir</button></div>`:'';return `<div class="settings-user-row"><div class="settings-user-avatar">${esc(((i.name||i.email||'?').trim().charAt(0)||'?').toUpperCase())}</div><div class="settings-user-copy"><strong>${esc(i.name||i.email)}</strong><small>${esc(i.email||'')} · ${esc(i.role==='admin'?'Administrador':'Usuário')} · aguardando primeiro acesso</small></div><div class="settings-user-status"><span class="badge yellow">Pendente</span>${actions}</div></div>`}).join('');
  if(!userRows)userRows=`<div class="settings-user-row">${accountAvatarHtml()}<div class="settings-user-copy"><strong>${esc(authProfile?.name||'Você')}</strong><small>${esc(authUser?.email||'')} · ${esc(workspaceMembership?.role||'owner')}</small></div><span class="badge green">Ativo</span></div>`;
  let accessCount=activeWorkspaceUsers.length+visiblePending.length;
  let maxMembers=Number(currentWorkspace?.max_members||2);
@@ -1729,6 +1730,32 @@ async function addUser(){
  finally{if(btn){btn.disabled=false;btn.textContent='+ Adicionar usuário'}}
 }
 async function deleteUser(id){let u=users.find(x=>x.id===id);if(!u||users.length<=1)return;let act=await openConfirmModal({title:'Excluir usuário',message:'Excluir este usuário?',buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'Excluir',cls:'red'}]});if(act!=='confirm')return;let old=[...users];users=users.filter(x=>x.id!==id);if(!saveUsers()){users=old;return}if(currentUser===u.email)logout();else renderCadastro()}
+
+function openWorkspaceUserEditor(kind,userId,nameEnc,emailEnc,role){
+ let name=decodeURIComponent(nameEnc||'');let email=decodeURIComponent(emailEnc||'');
+ $('#modalTitle').textContent='Editar acesso';
+ $('#modalBody').innerHTML=`<div class="form-grid"><input type="hidden" name="kind" value="${esc(kind)}"><input type="hidden" name="userId" value="${esc(userId||'')}"><input type="hidden" name="email" value="${esc(email)}"><div class="field full"><label>Nome</label><input name="name" required value="${esc(name)}"></div><div class="field full"><label>E-mail</label><input value="${esc(email)}" disabled></div><div class="field full"><label>Permissão</label><select name="role"><option value="member" ${role!=='admin'?'selected':''}>Usuário</option><option value="admin" ${role==='admin'?'selected':''}>Administrador</option></select></div></div>`;
+ openModal(saveWorkspaceUserEditor);
+}
+async function saveWorkspaceUserEditor(fd){
+ let kind=fd.get('kind'),userId=fd.get('userId'),email=fd.get('email'),name=String(fd.get('name')||'').trim(),role=fd.get('role')==='admin'?'admin':'member';
+ if(!name){toast('Informe o nome.');return}
+ try{
+   let result=kind==='invite'?await billySupabase.rpc('update_workspace_invite',{p_email:email,p_name:name,p_role:role}):await billySupabase.rpc('update_workspace_member',{p_user_id:userId,p_name:name,p_role:role});
+   if(result.error)throw result.error;
+   await loadWorkspaceAccess();renderCadastro();toast('Acesso atualizado.');
+ }catch(err){console.error(err);toast(String(err?.message||'Não foi possível atualizar o acesso.'))}
+}
+async function removeWorkspaceAccess(kind,userId,emailEnc){
+ let email=decodeURIComponent(emailEnc||'');
+ let act=await openConfirmModal({title:kind==='invite'?'Excluir autorização':'Excluir acesso',message:kind==='invite'?`Cancelar a autorização pendente de <strong>${esc(email)}</strong>?`:`Remover <strong>${esc(email)}</strong> desta conta BILLY?<br><br>Os dados financeiros da conta não serão apagados.`,buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'Excluir',cls:'red'}]});
+ if(act!=='confirm')return;
+ try{
+   let result=kind==='invite'?await billySupabase.rpc('cancel_workspace_invite',{p_email:email}):await billySupabase.rpc('remove_workspace_member',{p_user_id:userId});
+   if(result.error)throw result.error;
+   await loadWorkspaceAccess();renderCadastro();toast(kind==='invite'?'Autorização removida.':'Acesso removido.');
+ }catch(err){console.error(err);toast(String(err?.message||'Não foi possível excluir o acesso.'))}
+}
 
 function renderCategories(){let source=expenseCategories();let selected=(selectedAnalysisCategory&&source.includes(selectedAnalysisCategory))?selectedAnalysisCategory:source[0];let opts=source.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('');$('#view').innerHTML=`<div class="panel category-analysis-panel"><div class="panel-body category-analysis-body"><div class="category-analysis-toolbar"><div class="field"><label>Categoria</label><select id="catSel" onchange="selectedAnalysisCategory=this.value;localStorage.setItem('fin.selectedCategory',this.value);drawCategory()">${opts}</select></div></div><div id="catBox" class="category-analysis-box"></div></div></div>`;drawCategory()}
 function drawCategory(){let source=expenseCategories();let cat=$('#catSel')?.value||selectedAnalysisCategory||source[0];selectedAnalysisCategory=cat;let rows=sortedTxRows(state.tx.filter(t=>inMonth(t)&&t.type!=='income'&&t.category===cat));let total=sum(rows,'amount');$('#catBox').innerHTML=`<div class="category-analysis-summary"><div class="category-analysis-header"><div class="category-analysis-chip">${iconVisual(catEmoji(cat))}</div><div><strong>${esc(cat)}</strong><small>Veja quais lançamentos compõem esta categoria no mês selecionado.</small></div></div><div class="category-analysis-metrics"><div class="card red"><div class="k">Total da categoria</div><div class="v">${money(total)}</div></div><div class="card blue"><div class="k">Lançamentos</div><div class="v">${rows.length}</div></div></div></div>${categoryCompactList(rows)}`}
@@ -2404,6 +2431,7 @@ body.light-theme .login-brand-logo{
 .settings-user-avatar{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:linear-gradient(135deg,#2563eb,#0f8f8c);color:#fff;font-weight:950;box-shadow:0 7px 16px rgba(37,99,235,.18)}
 .settings-user-avatar.large{width:48px;height:48px;border-radius:15px;font-size:17px}
 .settings-user-copy{min-width:0}.settings-user-copy strong{display:block;font-size:14px}.settings-user-copy small{display:block;color:var(--muted);font-size:12px;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.settings-user-status{display:flex;align-items:center;gap:8px;justify-content:flex-end;flex-wrap:wrap}.settings-user-actions{display:flex;align-items:center;gap:6px}.settings-user-actions .btn{min-height:34px;padding:6px 10px}.settings-user-actions .btn.red{background:rgba(239,68,68,.11);border-color:rgba(239,68,68,.32);color:#fca5a5}.settings-user-actions .btn.red:hover{background:rgba(239,68,68,.18)}
 .settings-category-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .settings-category-list .cat-row{margin:0!important;padding:0!important;border:0!important;min-width:0}
 .settings-category-list .cat-inline{min-height:66px;padding:7px 10px!important;border-radius:15px!important}
@@ -2448,7 +2476,9 @@ body.light-theme .settings-category-list .cat-menu-btn{background:#f8fafc!import
   .settings-user-form{grid-template-columns:1fr;gap:9px}
   .settings-add-user{width:100%}
   .settings-user-row{grid-template-columns:auto minmax(0,1fr);padding:9px}
-  .settings-user-row .btn{grid-column:1/-1;width:100%;margin-top:1px}
+  .settings-user-status{grid-column:1/-1;width:100%;justify-content:space-between;margin-top:4px}
+  .settings-user-actions{flex:1;justify-content:flex-end}
+  .settings-user-actions .btn{width:auto;min-width:92px;margin-top:0}
   .settings-category-list{grid-template-columns:1fr;gap:8px}
   .settings-category-list .cat-inline{min-height:60px;padding:6px 8px!important}
   .settings-category-list .cat-emoji-box{width:42px;height:42px;flex-basis:42px;font-size:22px}
