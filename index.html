@@ -1295,7 +1295,7 @@ function renderForgotPassword(){
 }
 async function sendPasswordReset(){
  let email=($('#forgotEmail')?.value||'').trim().toLowerCase();if(!email){toast('Informe seu e-mail.');return}
- try{const {error}=await billySupabase.auth.resetPasswordForEmail(email,{redirectTo:'https://meubilly.com.br'});if(error)throw error;renderLogin();setTimeout(()=>toast('Link de recuperação enviado. Confira seu e-mail.'),80)}catch(err){console.error(err);toast('Não foi possível enviar o link de recuperação. Tente novamente.')}
+ try{const {error}=await billySupabase.auth.resetPasswordForEmail(email,{redirectTo:'https://app.meubilly.com.br/'});if(error)throw error;renderLogin();setTimeout(()=>toast('Link de recuperação enviado. Confira seu e-mail.'),80)}catch(err){console.error(err);toast('Não foi possível enviar o link de recuperação. Tente novamente.')}
 }
 function renderResetPassword(){
  $('#appShell').style.display='none';$('#loginScreen').style.display='grid';
@@ -1318,7 +1318,7 @@ function toggleLoginPassword(btn){
 }
 async function signInWithGoogle(){
  try{
-   const redirectTo=window.location.origin+window.location.pathname;
+   const redirectTo='https://app.meubilly.com.br/';
    const {data,error}=await billySupabase.auth.signInWithOAuth({
      provider:'google',
      options:{
