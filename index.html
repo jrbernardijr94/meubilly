@@ -3257,6 +3257,7 @@ body.light-theme .settings-danger-icon{background:#fff1f2;border-color:#fecdd3;c
       <section class="billy-mobile-section" role="button" tabindex="0" onclick="setPage('categories')"><div class="billy-section-head"><strong>Despesas por categoria</strong><button class="billy-section-link" type="button" onclick="event.stopPropagation();setPage('categories')">Ver todas</button></div>${cats.total?`<div class="billy-category-layout"><div class="billy-category-donut" style="--segments:${seg}"><div><b>${money(cats.total)}</b><small>Total</small></div></div><div class="billy-category-list">${cats.rows.map((r,i)=>`<div class="billy-category-row"><span class="billy-category-dot" style="background:${colors[i%colors.length]}"></span><strong>${esc(r.name)}</strong><span>${Math.round(r.value/cats.total*100)}%</span></div>`).join('')}</div></div>`:'<div class="billy-category-empty">Ainda não há despesas neste mês.</div>'}</section>
       <section class="billy-mobile-section v120-mobile-movement income"><div class="billy-section-head"><strong>Entradas do mês</strong><button class="billy-section-link" type="button" onclick="setPage('incomes')">Ver todas</button></div>${simpleTxList(incomeRows,'income')}</section>
       <section class="billy-mobile-section v120-mobile-movement expense"><div class="billy-section-head"><strong>Saídas do mês</strong><button class="billy-section-link" type="button" onclick="setPage('expenses')">Ver todas</button></div>${simpleTxList(expenseRows,'expense')}</section>
+      <section class="billy-mobile-section v121-card-totals"><div class="billy-section-head"><strong>Cartões — totais das faturas</strong><button class="billy-section-link" type="button" onclick="setPage('cards')">Ver cartões</button></div>${invoiceTotalsTable(m)}</section>
       <section class="billy-mobile-section"><div class="billy-section-head"><strong>Próximos vencimentos</strong></div><div class="billy-upcoming-list">${up.length?up.map(x=>`<div class="billy-upcoming-item"><div class="billy-upcoming-icon">${x.kind}</div><div class="billy-upcoming-main"><strong>${esc(x.title)}</strong><small>${esc(x.sub||'')}</small></div><div class="billy-upcoming-amt">${money(x.amount)}<small>${fmtDate(x.date)}</small></div></div>`).join(''):'<div class="billy-category-empty">Nenhum vencimento pendente neste mês.</div>'}</div></section>
     </div>`
   }
@@ -3429,11 +3430,18 @@ body.light-theme .v114-kpi,body.light-theme .v114-card,body.light-theme .credit-
           <section class="v114-card v120-movement-card income"><div class="v114-card-head"><strong>Entradas do mês</strong><button onclick="setPage('incomes')">Ver todas ›</button></div>${simpleTxList(incomeRows,'income')}</section>
           <section class="v114-card v120-movement-card expense"><div class="v114-card-head"><strong>Saídas do mês</strong><button onclick="setPage('expenses')">Ver todas ›</button></div>${simpleTxList(expenseRows,'expense')}</section>
         </div>
+        <section class="v114-card v121-card-totals"><div class="v114-card-head"><strong>Cartões — totais das faturas</strong><button onclick="setPage('cards')">Ver cartões ›</button></div>${invoiceTotalsTable(m)}</section>
       </div>
       <aside class="v114-card v120-upcoming-card"><div class="v114-card-head"><strong>Próximos vencimentos</strong><button onclick="setPage('expenses')">Ver todos ›</button></div><div class="v120-upcoming-list">${upcomingHtml}</div></aside>
     </div>
   </div>`
 }
+  // V121: use the approved modern dashboard on desktop; preserve the existing mobile dashboard renderer.
+  const v121MobileAwareDashboard = renderDashboard;
+  renderDashboard=function(){
+    if(window.matchMedia('(max-width:760px)').matches)return v121MobileAwareDashboard();
+    $('#view').innerHTML=modernDesktopDashboard();
+  };
   // Replace card logos with selected bank/brand or inferred real bank favicon.
   window.logoForCard=function(name){let c=(state.cards||[]).find(x=>x.name===name),v=visualForCard(c||{name}),bank=bankByKey(v.bank||inferBank(name));if(v.image)return v.image;return bank&&bank[2]?favicon(bank[2]):''}
   window.cardLogo=function(name){let c=(state.cards||[]).find(x=>x.name===name),v=visualForCard(c||{name}),bank=bankByKey(v.bank||inferBank(name));let src=v.image||((bank&&bank[2])?favicon(bank[2]):'');return src?`<img class="card-logo-img" src="${src}" alt="${esc(name)}">`:`<span class="card-logo-fallback">${esc(String(name||'??').slice(0,2).toUpperCase())}</span>`}
@@ -4141,6 +4149,51 @@ body.light-theme .simple-tx-item.expense-row{background:#fff5f6!important;border
   .v120-mobile-movement .simple-tx-side{grid-column:2/4;justify-self:start!important;margin-top:-2px}
   .v120-mobile-movement .simple-tx-value{font-size:13px!important}
   .v120-mobile-movement .simple-tx-menu-cell{grid-column:4;grid-row:1/3}
+}
+</style>
+
+
+<style id="v121-dashboard-modern-restored">
+/* V121 - modern dashboard restored with monthly movements and card invoice totals */
+.v121-card-totals{min-width:0}
+.v121-card-totals .invoice-total-list{display:grid;gap:9px}
+.v121-card-totals .invoice-total-item{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:10px;align-items:center;padding:11px 12px;border:1px solid var(--line);border-radius:14px;background:rgba(9,16,28,.52);min-width:0}
+.v121-card-totals .invoice-total-main{display:flex;align-items:center;gap:10px;min-width:0}
+.v121-card-totals .invoice-total-main>div{min-width:0}
+.v121-card-totals .invoice-total-main strong,.v121-card-totals .invoice-total-main small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v121-card-totals .invoice-total-main small{color:var(--muted);margin-top:3px}
+.v121-card-totals .invoice-total-value{font-weight:950;white-space:nowrap;color:#4dabf7}
+.v121-card-totals .invoice-total-status{white-space:nowrap}
+.v121-card-totals .invoice-total-action .btn{white-space:nowrap}
+body.light-theme .v121-card-totals .invoice-total-item{background:#f8fbfe!important;border-color:#d8e5ef!important}
+body.light-theme .v121-card-totals .invoice-total-value{color:#238bd9!important}
+body.light-theme .v121-card-totals .invoice-total-main small{color:#64748b!important}
+
+/* Keep the approved dashboard geometry on desktop */
+@media(min-width:981px){
+  .v120-dashboard-body{grid-template-columns:minmax(0,1fr) minmax(310px,370px)!important;gap:16px!important}
+  .v120-charts-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v120-month-movements{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v120-upcoming-card{position:sticky!important;top:18px!important}
+}
+@media(max-width:1280px) and (min-width:981px){
+  .v120-dashboard-body{grid-template-columns:minmax(0,1fr) 320px!important}
+  .v120-charts-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v120-month-movements{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+}
+@media(max-width:900px){
+  .v121-card-totals .invoice-total-item{grid-template-columns:minmax(0,1fr) auto;gap:8px}
+  .v121-card-totals .invoice-total-value{grid-column:2;grid-row:1}
+  .v121-card-totals .invoice-total-status{grid-column:1;grid-row:2;justify-self:start}
+  .v121-card-totals .invoice-total-action{grid-column:2;grid-row:2;justify-self:end}
+}
+@media(max-width:760px){
+  .v121-card-totals .invoice-total-item{grid-template-columns:minmax(0,1fr) auto!important;padding:10px!important}
+  .v121-card-totals .card-logo-img,.v121-card-totals .card-logo-fallback{width:38px!important;height:38px!important;flex:0 0 38px!important}
+  .v121-card-totals .invoice-total-main strong{font-size:13px!important}
+  .v121-card-totals .invoice-total-main small{font-size:10px!important}
+  .v121-card-totals .invoice-total-value{font-size:13px!important}
+  .v121-card-totals .invoice-total-action .btn{min-height:34px!important;padding:7px 10px!important;font-size:11px!important}
 }
 </style>
 
