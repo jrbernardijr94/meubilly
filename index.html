@@ -3520,5 +3520,135 @@ body.light-theme .v115-period{background:#fff!important;border-color:#c9d8e7!imp
 })();
 </script>
 
+
+
+<!-- V116: correcoes estruturais desktop/mobile -->
+<style id="v116-layout-fixes">
+/* Desktop: usa toda a area util e menu recolhivel de verdade */
+@media (min-width:761px){
+  .app{grid-template-columns:264px minmax(0,1fr)!important;transition:grid-template-columns .22s ease!important}
+  .side,body.sidebar-collapsed .side{width:264px!important;min-width:264px!important;transition:width .22s ease,min-width .22s ease,padding .22s ease!important}
+  .brand{min-height:142px!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:6px 4px 10px!important;margin:0!important}
+  .brand img{width:162px!important;max-height:132px!important;object-fit:contain!important;transition:width .22s ease,max-height .22s ease!important}
+  .side-collapse-btn,body.sidebar-collapsed .side-collapse-btn{display:flex!important;width:100%!important;height:44px!important;margin:0 0 8px!important;padding:0 12px!important;justify-content:flex-start!important;gap:10px!important}
+  .nav{gap:7px!important}
+  .nav button{min-height:52px!important;padding:8px 10px!important;border-radius:13px!important}
+  .nav button .nav-icon{width:34px!important;height:34px!important;flex:0 0 34px!important}
+  .main,body.sidebar-collapsed .main{max-width:none!important;width:100%!important;margin:0!important;padding:24px clamp(24px,2.8vw,54px) 60px!important}
+  .topbar,#view,.v114-dashboard,.panel,.settings-shell,.category-analysis-panel{width:100%!important;max-width:none!important}
+  .v114-dashboard{gap:18px!important}
+  .v114-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:16px!important}
+  .v114-kpi{min-height:136px!important;padding:18px!important}
+  .v114-kpi-value{font-size:clamp(24px,1.8vw,31px)!important}
+  .v114-dash-grid{grid-template-columns:minmax(520px,1.1fr) minmax(430px,.9fr)!important;gap:18px!important}
+  .v114-card{min-width:0!important}
+  .cards-catalog{grid-template-columns:repeat(2,minmax(360px,1fr))!important;gap:18px!important}
+  .credit-card-item{min-width:0!important}
+  .summary-cards{grid-template-columns:repeat(6,minmax(0,1fr))!important}
+  body.sidebar-collapsed .app{grid-template-columns:82px minmax(0,1fr)!important}
+  body.sidebar-collapsed .side{width:82px!important;min-width:82px!important;padding:12px 9px 14px!important}
+  body.sidebar-collapsed .brand{min-height:78px!important;padding:2px 0 8px!important}
+  body.sidebar-collapsed .brand img{width:62px!important;max-height:64px!important}
+  body.sidebar-collapsed .side-collapse-btn{width:48px!important;height:42px!important;margin:0 auto 8px!important;padding:0!important;justify-content:center!important}
+  body.sidebar-collapsed .collapse-label{display:none!important}
+  body.sidebar-collapsed .nav button{width:48px!important;height:48px!important;min-height:48px!important;margin:0 auto!important;padding:0!important;justify-content:center!important}
+  body.sidebar-collapsed .nav button .nav-label{display:none!important}
+  body.sidebar-collapsed .nav button .nav-icon{width:38px!important;height:38px!important;flex:0 0 38px!important}
+  body.sidebar-collapsed .side-footer{left:8px!important;right:8px!important}
+  body.sidebar-collapsed .side-theme-title,body.sidebar-collapsed .side-theme-toggle{display:none!important}
+  body.sidebar-collapsed .side-theme-btn{width:48px!important;height:44px!important;margin:0 auto!important;padding:0!important;display:grid!important;place-items:center!important}
+}
+
+/* Cartoes: logo principal do banco + somente a bandeira, sem duplicar logo do banco */
+.v114-card-brand{margin-top:8px!important;display:flex!important;align-items:center!important;gap:7px!important;min-height:24px!important}
+.v114-card-brand .v114-brand-logo{display:none!important}
+.v116-brand-mark{display:inline-flex;align-items:center;justify-content:center;min-width:46px;height:24px;padding:0 8px;border-radius:7px;background:#fff;color:#111827;font-weight:950;font-size:11px;letter-spacing:-.02em;border:1px solid rgba(255,255,255,.14)}
+.v116-brand-mark.mc{gap:0;min-width:48px;padding:0 5px}.v116-brand-mark.mc i{display:block;width:16px;height:16px;border-radius:50%;margin:0 -2px}.v116-brand-mark.mc i:first-child{background:#eb001b}.v116-brand-mark.mc i:last-child{background:#f79e1b}.v116-brand-mark.visa{color:#1a1f71;font-style:italic;font-size:12px}.v116-brand-mark.elo{background:#111;color:#fff}.v116-brand-mark.amex{background:#1976d2;color:#fff}
+.credit-card-logo{width:58px!important;height:58px!important;border-radius:15px!important;padding:7px!important}
+.credit-card-ident{align-items:flex-start!important}.credit-card-ident strong{font-size:18px!important}.credit-card-ident small{line-height:1.35!important}
+
+/* Mobile: cabecalho sem barra, logo + perfil, encaixes iguais */
+.v116-mobile-brand{display:none}
+@media (max-width:760px){
+  .side,.brand,.hamburger,.side-collapse-btn,.mobile-menu-backdrop{display:none!important}
+  .main,body.sidebar-collapsed .main{padding:74px 10px calc(84px + env(safe-area-inset-bottom))!important;max-width:100vw!important;overflow-x:hidden!important}
+  .v116-mobile-brand{position:fixed;display:flex;left:0;right:0;top:0;height:66px;align-items:center;justify-content:space-between;padding:5px 14px 4px;z-index:48;background:transparent;border:0;transition:background .18s ease,box-shadow .18s ease,backdrop-filter .18s ease}
+  .v116-mobile-brand img{width:82px;height:54px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.22))}
+  body.mobile-scrolled .v116-mobile-brand{background:rgba(7,13,22,.84);backdrop-filter:blur(16px);box-shadow:0 8px 24px rgba(0,0,0,.16)}
+  .billy-mobile-profile{position:fixed!important;right:14px!important;top:8px!important;width:48px!important;height:48px!important;z-index:52!important;border:2px solid #159eea!important;box-shadow:0 0 0 4px rgba(35,184,255,.08),0 8px 22px rgba(0,0,0,.26)!important}
+  .billy-mobile-profile img{width:100%!important;height:100%!important;object-fit:cover!important;object-position:center 30%!important;border-radius:50%!important}
+  .topbar{padding:4px 3px 5px!important;margin:0 0 10px!important;background:transparent!important;border:0!important;box-shadow:none!important}
+  body.page-dashboard .topbar{display:none!important}
+  body.mobile-scrolled:not(.page-dashboard) .topbar{top:66px!important;margin-left:0!important;margin-right:0!important;padding:8px 3px 7px!important;background:transparent!important;backdrop-filter:none!important;box-shadow:none!important}
+  .v115-period{width:100%!important;grid-template-columns:42px minmax(0,1fr) 42px!important;border-radius:15px!important}
+  .v115-period-label{font-size:13.5px!important;text-transform:none!important}
+  .billy-mobile-hero{gap:9px!important;margin-bottom:10px!important}
+  .billy-mobile-hero h1{font-size:31px!important;line-height:1.05!important;margin:0!important}
+  .billy-mobile-hero p{font-size:12.5px!important;margin-top:5px!important}
+  .billy-mobile-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;align-items:stretch!important}
+  .billy-kpi{min-height:118px!important;height:100%!important;padding:13px 12px!important;border-radius:18px!important;display:flex!important;flex-direction:column!important;justify-content:space-between!important;overflow:hidden!important}
+  .billy-kpi-top{min-width:0!important;gap:8px!important}.billy-kpi-top strong{font-size:12.5px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}.billy-kpi-icon{width:36px!important;height:36px!important;flex:0 0 36px!important;border-radius:12px!important}
+  .billy-kpi-value{font-size:21px!important;line-height:1.05!important;white-space:nowrap!important;letter-spacing:-.04em!important}
+  .billy-kpi small{font-size:10px!important;line-height:1.2!important}
+  .billy-mobile-section{padding:14px!important;border-radius:19px!important;margin-bottom:10px!important}
+  .billy-budget-layout,.billy-category-layout{grid-template-columns:96px minmax(0,1fr)!important;gap:12px!important;align-items:center!important}
+  .billy-budget-ring,.billy-category-donut{width:94px!important;height:94px!important}
+  .billy-section-title strong{font-size:16px!important}.billy-section-title button{font-size:11px!important}
+  .billy-bottom-nav{height:62px!important;padding:5px 5px calc(5px + env(safe-area-inset-bottom))!important;border-top:0!important;box-shadow:0 -8px 28px rgba(0,0,0,.24)!important}
+  .billy-bottom-nav button{min-width:0!important;gap:2px!important}.billy-bottom-nav svg{width:21px!important;height:21px!important}.billy-bottom-nav small{font-size:9px!important}
+  .cards-catalog{grid-template-columns:1fr!important;gap:10px!important}.credit-card-item{padding:13px!important;border-radius:18px!important}.credit-card-logo{width:50px!important;height:50px!important}.credit-card-ident strong{font-size:16px!important}.v116-brand-mark{height:22px!important;min-width:42px!important;font-size:10px!important}
+}
+@media(max-width:390px){
+  .billy-kpi-value{font-size:19px!important}.billy-mobile-hero h1{font-size:29px!important}.billy-mobile-brand img{width:76px!important}.billy-budget-layout,.billy-category-layout{grid-template-columns:88px minmax(0,1fr)!important}.billy-budget-ring,.billy-category-donut{width:86px!important;height:86px!important}
+}
+</style>
+<script id="v116-layout-script">
+(function(){
+  function ensureMobileBrand(){
+    if(!window.matchMedia('(max-width:760px)').matches)return;
+    let bar=document.getElementById('v116MobileBrand');
+    if(!bar){
+      bar=document.createElement('div');bar.id='v116MobileBrand';bar.className='v116-mobile-brand';
+      document.body.appendChild(bar);
+    }
+    const src=document.querySelector('.brand img')?.src||'';
+    bar.innerHTML=src?`<img src="${src}" alt="BILLY">`:'';
+  }
+  const oldToggleV116=window.toggleSidebar;
+  window.toggleSidebar=function(){
+    if(window.matchMedia('(max-width:760px)').matches)return;
+    const collapsed=!document.body.classList.contains('sidebar-collapsed');
+    document.body.classList.toggle('sidebar-collapsed',collapsed);
+    try{localStorage.setItem('fin.sidebarCollapsed',collapsed?'1':'0')}catch(e){}
+  };
+  function brandMark(brand){
+    brand=String(brand||'').toLowerCase();
+    if(brand==='mastercard')return '<span class="v116-brand-mark mc" title="Mastercard"><i></i><i></i></span>';
+    if(brand==='visa')return '<span class="v116-brand-mark visa">VISA</span>';
+    if(brand==='elo')return '<span class="v116-brand-mark elo">elo</span>';
+    if(brand==='amex'||brand==='americanexpress')return '<span class="v116-brand-mark amex">AMEX</span>';
+    return brand?`<span class="v116-brand-mark">${String(brand).toUpperCase()}</span>`:'';
+  }
+  const oldRenderCardsV116=window.renderCards;
+  if(typeof oldRenderCardsV116==='function'){
+    window.renderCards=function(){
+      oldRenderCardsV116();
+      document.querySelectorAll('.credit-card-item').forEach((el,i)=>{
+        const c=(state.cards||[])[i];if(!c)return;
+        let v={};try{v=visualForCard(c)||{}}catch(e){}
+        const holder=el.querySelector('.v114-card-brand');
+        if(holder)holder.innerHTML=brandMark(v.brand||'mastercard');
+      });
+    };
+  }
+  const oldRenderV116=window.render;
+  if(typeof oldRenderV116==='function'){
+    window.render=function(){oldRenderV116();setTimeout(()=>{ensureMobileBrand();if(typeof syncBillyMobileUI==='function')syncBillyMobileUI()},0)};
+  }
+  window.addEventListener('resize',()=>{ensureMobileBrand()});
+  document.addEventListener('DOMContentLoaded',()=>setTimeout(ensureMobileBrand,0));
+})();
+</script>
+
 </body>
 </html>
