@@ -1127,6 +1127,104 @@ body.billy-auth-mode{padding-bottom:0!important}
 @media(max-width:390px){.billy-mobile-hero h1{font-size:29px}.billy-mobile-hero p{font-size:12.5px}.billy-month-pill{min-height:48px;padding:0 11px;font-size:13px}.billy-kpi{min-height:126px;padding:13px}.billy-kpi-value{font-size:22px}.billy-budget-layout{grid-template-columns:104px 1fr;gap:13px}.billy-budget-ring{width:100px;height:100px}.billy-category-layout{grid-template-columns:112px 1fr;gap:12px}.billy-category-donut{width:108px;height:108px}.billy-mobile-section{padding:14px}.billy-bottom-nav small{font-size:9px}}
 </style>
 
+
+<style id="v122-sidebar-fit-fix">
+/* V122 - corrige encaixe do item ativo no menu lateral */
+@media (min-width:761px){
+  .side{
+    overflow:hidden !important;
+  }
+  .nav{
+    width:100% !important;
+    min-width:0 !important;
+    box-sizing:border-box !important;
+  }
+  .nav button,
+  body.sidebar-collapsed .nav button{
+    box-sizing:border-box !important;
+    max-width:100% !important;
+  }
+  body:not(.sidebar-collapsed) .nav button{
+    width:100% !important;
+    margin-left:0 !important;
+    margin-right:0 !important;
+  }
+  body:not(.sidebar-collapsed) .nav button.active{
+    width:100% !important;
+    max-width:100% !important;
+  }
+  body.sidebar-collapsed .nav{
+    width:100% !important;
+    align-items:center !important;
+  }
+  body.sidebar-collapsed .nav button{
+    width:48px !important;
+    max-width:48px !important;
+    margin-left:auto !important;
+    margin-right:auto !important;
+  }
+}
+</style>
+
+
+<style id="v123-import-fix">
+.import-review-now,.import-ai-continue{
+  width:100%!important;
+  margin-top:12px!important;
+  min-height:48px!important;
+  font-weight:900!important;
+}
+#modalBack{z-index:1200!important}
+#modalBack .modal{
+  overflow:auto!important;
+  overscroll-behavior:contain!important;
+}
+#modalBack .modal-foot{
+  position:sticky!important;
+  bottom:0!important;
+  z-index:15!important;
+  background:#101827!important;
+  box-shadow:0 -10px 26px rgba(0,0,0,.18)!important;
+}
+body.light-theme #modalBack .modal-foot{background:#fff!important}
+@media(max-width:760px){
+  #modalBack{
+    align-items:flex-end!important;
+    padding:0!important;
+  }
+  #modalBack .modal{
+    width:100%!important;
+    max-height:calc(100dvh - 16px)!important;
+    border-radius:22px 22px 0 0!important;
+    padding-bottom:0!important;
+  }
+  #modalBack .modal-body{
+    padding-bottom:18px!important;
+  }
+  #modalBack .modal-foot{
+    bottom:0!important;
+    padding:12px 14px calc(16px + env(safe-area-inset-bottom))!important;
+  }
+  .import-hidden-raw textarea,
+  #aiPromptBox{
+    font-size:15px!important;
+    line-height:1.35!important;
+  }
+}
+</style>
+
+
+<style id="v124-import-desktop-mobile-fix">
+#importFileStatus,.invoice-file-status{min-height:0}
+.import-review-now,.import-ai-continue{display:flex!important;align-items:center!important;justify-content:center!important;cursor:pointer!important;pointer-events:auto!important}
+#modalForm .modal-foot .btn.primary{cursor:pointer!important;pointer-events:auto!important}
+@media(min-width:761px){
+  #modalBack .modal{width:min(820px,94vw)!important;max-height:90vh!important;overflow:auto!important}
+  #modalBack .modal-body{overflow:visible!important}
+  .import-review-now,.import-ai-continue{max-width:360px!important}
+}
+</style>
+
 </head>
 <body>
 <div class="login-screen" id="loginScreen"></div>
@@ -2033,10 +2131,28 @@ function setImportSubmitLabel(label){let btn=document.querySelector('#modalForm 
 function copyImportPrompt(){let txt=importPromptText();navigator.clipboard?.writeText(txt).then(()=>toast('Instrução copiada.')).catch(()=>{let el=document.getElementById('aiPromptBox');if(el){el.focus();el.select?.()}toast('Copie a instrução manualmente.');})}
 async function readInvoiceFile(file){let name=(file.name||'').toLowerCase();if(name.endsWith('.csv')||name.endsWith('.txt')||name.endsWith('.tsv'))return await file.text();if(name.endsWith('.xlsx')||name.endsWith('.xls')){if(typeof XLSX==='undefined')throw new Error('Leitor de Excel indisponível. Verifique sua internet e tente novamente.');let buf=await file.arrayBuffer();let wb=XLSX.read(buf,{type:'array',cellDates:true});let ws=wb.Sheets[wb.SheetNames[0]];return XLSX.utils.sheet_to_csv(ws,{FS:';'});}if(name.endsWith('.pdf')){if(typeof pdfjsLib==='undefined')throw new Error('Leitor de PDF indisponível. Verifique sua internet e tente novamente.');pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';let data=new Uint8Array(await file.arrayBuffer());let pdf=await pdfjsLib.getDocument({data}).promise;let all=[];for(let p=1;p<=pdf.numPages;p++){let page=await pdf.getPage(p);let content=await page.getTextContent();let lastY=null,line=[];for(let item of content.items){let y=Math.round(item.transform?.[5]||0);if(lastY!==null&&Math.abs(y-lastY)>3&&line.length){all.push(line.join(' '));line=[]}line.push(item.str);lastY=y}if(line.length)all.push(line.join(' '));}return all.join('\n');}throw new Error('Formato não suportado automaticamente.')}
 async function handleInvoiceFile(input){let file=input.files&&input.files[0];if(!file)return;let status=document.getElementById('invoiceFileStatus');if(status)status.innerHTML='<span class="import-loading">Lendo arquivo…</span>';try{let text=await readInvoiceFile(file);let target=document.querySelector('[name="invoiceText"]');if(target)target.value=text;invoiceImportDraft.fileName=file.name;if(status)status.innerHTML=`<strong>${esc(file.name)}</strong><small>Arquivo lido. Clique em “Revisar lançamentos”.</small>`;toast('Arquivo lido com sucesso.')}catch(err){if(status)status.innerHTML=`<strong>Não consegui ler automaticamente.</strong><small>${esc(err.message||'Use a conversão por aplicativo de IA.')}</small>`;document.getElementById('invoiceAiFallback')?.classList.add('show');}}
-function openImportInvoice(){let cardOpts=state.cards.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');let prompt=importPromptText();$('#modalTitle').textContent='Importar fatura';$('#modalBody').innerHTML=`<div class="import-flow-steps"><span class="active">1. Enviar</span><span>2. Revisar</span><span>3. Categorizar</span></div><div class="import-main-card"><div class="import-main-copy"><h4>Envie o arquivo exportado pelo seu banco</h4><p>O BILLY lê gratuitamente PDF com texto, CSV, Excel, XLSX, XLS e TXT. Nenhum dado é enviado para uma IA.</p></div><label class="import-dropzone"><input type="file" accept=".csv,.txt,.tsv,.pdf,.xlsx,.xls" onchange="handleInvoiceFile(this)"><span class="import-drop-icon">⇧</span><strong>Selecionar fatura</strong><small>PDF · CSV · Excel · TXT</small></label><div id="invoiceFileStatus" class="invoice-file-status"></div></div><div class="form-grid import-defaults"><div class="field"><label>Cartão</label><select name="defaultCard">${cardOpts}</select></div><div class="field"><label>Mês da fatura</label><input type="month" name="defaultInvoiceMonth" value="${month()}"></div><div class="field full import-hidden-raw"><label>Conteúdo lido</label><textarea name="invoiceText" rows="4" placeholder="O conteúdo do arquivo aparecerá aqui"></textarea></div></div><div class="import-ai-link"><button type="button" class="btn ghost" onclick="document.getElementById('invoiceAiFallback').classList.toggle('show')">Minha fatura é foto, print ou não foi reconhecida</button></div><div class="import-ai-fallback" id="invoiceAiFallback"><h4>Converter com um aplicativo de IA</h4><p>Use qualquer aplicativo de IA, inclusive opções gratuitas. Envie a imagem/print e cole a instrução abaixo.</p><textarea id="aiPromptBox" rows="8" readonly>${esc(prompt)}</textarea><div class="toolbar"><button type="button" class="btn primary" onclick="copyImportPrompt()">Copiar instrução</button></div><p class="import-file-note">Depois, cole o CSV retornado no campo “Conteúdo lido” acima e continue normalmente.</p></div>`;openModal(prepareInvoiceReview);setImportSubmitLabel('Revisar lançamentos')}
-function prepareInvoiceReview(fd){let defaults={cartao:fd.get('defaultCard')||'',mes_fatura:fd.get('defaultInvoiceMonth')||month()};let parsed=parseInvoiceImport(fd.get('invoiceText')||'',defaults);if(!parsed.rows.length){toast(parsed.errors[0]||'Nenhum lançamento encontrado.');return false}invoiceImportDraft={rows:parsed.rows,errors:parsed.errors||[],fileName:invoiceImportDraft.fileName||'',defaults};setTimeout(showInvoiceReview,0);return false}
+function openImportInvoice(){let cardOpts=state.cards.map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');let prompt=importPromptText();$('#modalTitle').textContent='Importar fatura';$('#modalBody').innerHTML=`<div class="import-flow-steps"><span class="active">1. Enviar</span><span>2. Revisar</span><span>3. Categorizar</span></div><div class="import-main-card"><div class="import-main-copy"><h4>Envie o arquivo exportado pelo seu banco</h4><p>O BILLY lê gratuitamente PDF com texto, CSV, Excel, XLSX, XLS e TXT. Nenhum dado é enviado para uma IA.</p></div><label class="import-dropzone"><input type="file" accept=".csv,.txt,.tsv,.pdf,.xlsx,.xls" onchange="handleInvoiceFile(this)"><span class="import-drop-icon">⇧</span><strong>Selecionar fatura</strong><small>PDF · CSV · Excel · TXT</small></label><div id="invoiceFileStatus" class="invoice-file-status"></div></div><div class="form-grid import-defaults"><div class="field"><label>Cartão</label><select name="defaultCard">${cardOpts}</select></div><div class="field"><label>Mês da fatura</label><input type="month" name="defaultInvoiceMonth" value="${month()}"></div><div class="field full import-hidden-raw"><label>Conteúdo lido</label><textarea name="invoiceText" rows="4" placeholder="Cole aqui o CSV retornado pela IA ou o conteúdo lido do arquivo"></textarea><button type="button" class="btn primary import-review-now" onclick="reviewInvoiceFromModal()">Revisar lançamentos</button></div></div><div class="import-ai-link"><button type="button" class="btn ghost" onclick="document.getElementById('invoiceAiFallback').classList.toggle('show')">Minha fatura é foto, print ou não foi reconhecida</button></div><div class="import-ai-fallback" id="invoiceAiFallback"><h4>Converter com um aplicativo de IA</h4><p>Use qualquer aplicativo de IA, inclusive opções gratuitas. Envie a imagem/print e cole a instrução abaixo.</p><textarea id="aiPromptBox" rows="8" readonly>${esc(prompt)}</textarea><div class="toolbar"><button type="button" class="btn primary" onclick="copyImportPrompt()">Copiar instrução</button></div><p class="import-file-note">Depois, cole o CSV retornado no campo “Conteúdo lido” acima.</p><button type="button" class="btn primary import-ai-continue" onclick="reviewInvoiceFromModal()">Revisar lançamentos colados</button></div>`;openModal(prepareInvoiceReview);setModalPrimaryAction('Revisar lançamentos',reviewInvoiceFromModal)}
+function reviewInvoiceFromModal(){
+  const form=document.getElementById('modalForm');
+  if(!form)return false;
+  return prepareInvoiceReview(new FormData(form));
+}
+function setModalPrimaryAction(label,handler){
+  const btn=document.querySelector('#modalForm .modal-foot .btn.primary');
+  if(!btn)return;
+  btn.type='button';
+  btn.textContent=label||'Continuar';
+  btn.onclick=handler||null;
+}
+function prepareInvoiceReview(fd){let defaults={cartao:fd.get('defaultCard')||'',mes_fatura:fd.get('defaultInvoiceMonth')||month()};let parsed=parseInvoiceImport(fd.get('invoiceText')||'',defaults);if(!parsed.rows.length){
+  const msg=parsed.errors[0]||'Nenhum lançamento encontrado.';
+  toast(msg);
+  let box=document.getElementById('invoiceFileStatus');
+  if(box)box.innerHTML=`<strong>Não consegui revisar os dados.</strong><small>${esc(msg)} Confira se o CSV está no formato data;descricao;valor;parcela_atual;parcelas_total.</small>`;
+  return false
+}invoiceImportDraft={rows:parsed.rows,errors:parsed.errors||[],fileName:invoiceImportDraft.fileName||'',defaults};setTimeout(showInvoiceReview,0);return false}
 function categorySelectHtml(selected,rowIndex){let opts=expenseCategories();if(selected&&!opts.includes(selected))opts=[selected,...opts];return `<select class="import-category-select" data-import-category="${rowIndex}">${opts.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('')}</select>`}
-function showInvoiceReview(){let rows=invoiceImportDraft.rows||[];let newCount=0,dupCount=0;rows.forEach((r,i)=>{if(!r.category||r.category==='Outros')r.category=suggestCategoryForDescription(r.description);r.importId=r.importId||makeImportId({cartao:r.card,mes_fatura:r.invoiceMonth,data:r.date,descricao:r.description,valor:r.amount,parcela_atual:r.installmentIndex,parcelas:r.installmentTotal});r._duplicate=txDuplicateReason(r);if(r._duplicate)dupCount++;else newCount++;r._include=!r._duplicate});$('#modalTitle').textContent='Revisar fatura';$('#modalBody').innerHTML=`<div class="import-flow-steps"><span>1. Enviar</span><span class="active">2. Revisar</span><span class="active">3. Categorizar</span></div><div class="import-review-summary"><div><strong>${newCount}</strong><small>novos</small></div><div><strong>${dupCount}</strong><small>já existentes</small></div><div><strong>${rows.length}</strong><small>lidos</small></div></div>${invoiceImportDraft.errors.length?`<div class="import-warning">${invoiceImportDraft.errors.length} aviso(s) durante a leitura. Confira os lançamentos antes de importar.</div>`:''}<div class="import-review-list">${rows.map((r,i)=>`<div class="import-review-row ${r._duplicate?'duplicate':''}"><label class="import-review-check"><input type="checkbox" data-import-include="${i}" ${r._include?'checked':''} ${r._duplicate?'disabled':''}></label><div class="import-review-date">${compactDate(r.date)}</div><div class="import-review-main"><strong>${esc(r.description)}</strong><small>${r.installment?`Parcela ${esc(r.installment)} · `:''}${money(r.amount)} · ${esc(r.card||'Cartão')}</small><div class="import-review-cat">${categorySelectHtml(r.category,i)}</div></div><div class="import-review-status ${r._duplicate?'old':'new'}">${r._duplicate||'Novo'}</div></div>`).join('')}</div><div class="import-review-note">As categorias escolhidas serão lembradas para próximas importações semelhantes.</div>`;$('#modalForm').onsubmit=e=>{e.preventDefault();finalizeInvoiceImport()};setImportSubmitLabel(`Importar ${newCount} novo${newCount===1?'':'s'}`)}
+function showInvoiceReview(){let rows=invoiceImportDraft.rows||[];let newCount=0,dupCount=0;rows.forEach((r,i)=>{if(!r.category||r.category==='Outros')r.category=suggestCategoryForDescription(r.description);r.importId=r.importId||makeImportId({cartao:r.card,mes_fatura:r.invoiceMonth,data:r.date,descricao:r.description,valor:r.amount,parcela_atual:r.installmentIndex,parcelas:r.installmentTotal});r._duplicate=txDuplicateReason(r);if(r._duplicate)dupCount++;else newCount++;r._include=!r._duplicate});$('#modalTitle').textContent='Revisar fatura';$('#modalBody').innerHTML=`<div class="import-flow-steps"><span>1. Enviar</span><span class="active">2. Revisar</span><span class="active">3. Categorizar</span></div><div class="import-review-summary"><div><strong>${newCount}</strong><small>novos</small></div><div><strong>${dupCount}</strong><small>já existentes</small></div><div><strong>${rows.length}</strong><small>lidos</small></div></div>${invoiceImportDraft.errors.length?`<div class="import-warning">${invoiceImportDraft.errors.length} aviso(s) durante a leitura. Confira os lançamentos antes de importar.</div>`:''}<div class="import-review-list">${rows.map((r,i)=>`<div class="import-review-row ${r._duplicate?'duplicate':''}"><label class="import-review-check"><input type="checkbox" data-import-include="${i}" ${r._include?'checked':''} ${r._duplicate?'disabled':''}></label><div class="import-review-date">${compactDate(r.date)}</div><div class="import-review-main"><strong>${esc(r.description)}</strong><small>${r.installment?`Parcela ${esc(r.installment)} · `:''}${money(r.amount)} · ${esc(r.card||'Cartão')}</small><div class="import-review-cat">${categorySelectHtml(r.category,i)}</div></div><div class="import-review-status ${r._duplicate?'old':'new'}">${r._duplicate||'Novo'}</div></div>`).join('')}</div><div class="import-review-note">As categorias escolhidas serão lembradas para próximas importações semelhantes.</div>`;$('#modalForm').onsubmit=e=>{e.preventDefault();finalizeInvoiceImport()};setModalPrimaryAction(`Importar ${newCount} novo${newCount===1?'':'s'}`,finalizeInvoiceImport)}
 function finalizeInvoiceImport(){let rows=invoiceImportDraft.rows||[];let imported=0,ignored=0,planned=0;rows.forEach((row,i)=>{let checkbox=document.querySelector(`[data-import-include="${i}"]`);if(!checkbox||!checkbox.checked){ignored++;return}let cat=document.querySelector(`[data-import-category="${i}"]`)?.value||row.category||'Outros';row.category=cat;let merchantKey=normalizeMerchant(row.description);if(merchantKey)state.importCategoryRules[merchantKey]=cat;row.importId=row.importId||makeImportId({cartao:row.card,mes_fatura:row.invoiceMonth,data:row.date,descricao:row.description,valor:row.amount,parcela_atual:row.installmentIndex,parcelas:row.installmentTotal});let duplicate=txDuplicateReason(row);if(duplicate){ignored++;return}let total=Number(row.installmentTotal||1),idx=Number(row.installmentIndex||1);let series=installmentSeriesKey(row);let current={...row,id:uid(),importSeriesKey:series,source:'import'};state.tx.push(current);imported++;if(total>1&&idx<total){for(let p=idx+1;p<=total;p++){let future={...row,id:uid(),date:addMonthsISO(row.date,p-idx),invoiceMonth:addMonthsKey(row.invoiceMonth,p-idx),installment:`${p}/${total}`,installmentIndex:p,installmentTotal:total,importSeriesKey:series,importId:`${row.importId}-future-${p}`,source:'import-planned',status:'pending'};if(!txDuplicateReason(future)){state.tx.push(future);planned++;}}}});ensureState();persistLocalCache();scheduleSupabaseSync();closeModal();render();toast(`${imported} novo(s) importado(s) · ${planned} parcela(s) futura(s) programada(s) · ${ignored} ignorado(s).`)}
 
 function openCard(id=null){editing=id;let c=id?state.cards.find(x=>x.id===id):{};$('#modalTitle').textContent=id?'Editar cartão':'Novo cartão';$('#modalBody').innerHTML=`<div class="form-grid"><input type="hidden" name="id" value="${id||''}"><div class="field full"><label>Nome</label><input name="name" required value="${c.name||''}"></div><div class="field"><label>Limite</label><input name="limit" required value="${c.limit||''}"></div><div class="field"><label>Dia fechamento</label><input type="number" min="1" max="31" name="closingDay" value="${c.closingDay||1}"></div><div class="field"><label>Dia vencimento</label><input type="number" min="1" max="31" name="dueDay" value="${c.dueDay||1}"></div></div>`;openModal(saveCard)}
@@ -2044,7 +2160,21 @@ function editCard(id){openCard(id)} async function delCard(id){let c=state.cards
 function saveCard(fd){let o=Object.fromEntries(fd.entries());o.limit=parseBR(o.limit);o.closingDay=Number(o.closingDay);o.dueDay=Number(o.dueDay);if(o.id){let old=state.cards.find(x=>x.id===o.id);state.tx.filter(t=>t.card===old.name).forEach(t=>t.card=o.name);Object.assign(old,o)}else{o.id=uid();state.cards.push(o)}save();toast('Cartão salvo.')}
 function openBudget(id=null){let b=id?state.budgets.find(x=>x.id===id):{month:month()};$('#modalTitle').textContent=id?'Editar orçamento':'Novo orçamento';$('#modalBody').innerHTML=`<div class="form-grid"><input type="hidden" name="id" value="${id||''}"><div class="field"><label>Mês</label><input type="month" name="month" value="${b.month||month()}"></div><div class="field"><label>Categoria</label><select name="category">${categoryOptions(b.category,'expense')}</select></div><div class="field full"><label>Valor previsto</label><input name="planned" value="${b.planned||''}"></div></div>`;openModal(saveBudget)} function editBudget(id){openBudget(id)}
 function saveBudget(fd){let o=Object.fromEntries(fd.entries());o.planned=parseBR(o.planned);if(o.id){Object.assign(state.budgets.find(x=>x.id===o.id),o)}else{o.id=uid();state.budgets.push(o)}save();toast('Orçamento salvo.')}
-function openModal(handler){$('#modalBack').style.display='flex';$('#modalForm').onsubmit=e=>{e.preventDefault();handler(new FormData(e.target));closeModal()}} function closeModal(){$('#modalBack').style.display='none'}
+function openModal(handler){
+  $('#modalBack').style.display='flex';
+  const primary=document.querySelector('#modalForm .modal-foot .btn.primary');
+  if(primary){primary.type='submit';primary.onclick=null;if(!primary.textContent.trim())primary.textContent='Salvar';}
+  $('#modalForm').onsubmit=e=>{
+    e.preventDefault();
+    const result=handler(new FormData(e.target));
+    if(result && typeof result.then==='function'){
+      result.then(v=>{if(v!==false)closeModal()}).catch(err=>{console.error(err);toast('Não foi possível concluir a ação.')});
+      return;
+    }
+    if(result!==false) closeModal();
+  }
+}
+function closeModal(){$('#modalBack').style.display='none'}
 let confirmResolver=null;
 function closeConfirmModal(result='cancel'){let back=$('#confirmBack');if(back)back.style.display='none';let resolver=confirmResolver;confirmResolver=null;if(resolver)resolver(result)}
 function openConfirmModal(opts={}){return new Promise(resolve=>{confirmResolver=resolve;$('#confirmTitle').textContent=opts.title||'Confirmar';$('#confirmMessage').innerHTML=opts.message||'';let buttons=(opts.buttons&&opts.buttons.length)?opts.buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'OK',cls:'primary'}];$('#confirmActions').innerHTML=buttons.map(btn=>`<button type="button" class="btn ${btn.cls||'ghost'}" onclick="closeConfirmModal('${btn.key||'cancel'}')">${esc(btn.text||'OK')}</button>`).join('');$('#confirmBack').style.display='flex';})}
