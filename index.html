@@ -2109,7 +2109,27 @@ function saveTx(fd){let obj=Object.fromEntries(fd.entries());obj.amount=parseBR(
  delete obj.paymentMode;delete obj.installmentsCount;delete obj.repeatMode;delete obj.repeatCount;obj.id=uid();state.tx.push(obj);save();toast('Lançamento salvo.')}
 function toggleStatus(id){let r=state.tx.find(x=>x.id===id);r.status=r.status==='paid'?'pending':'paid';save()} function setInvoiceStatus(card,m,status){state.tx.filter(t=>t.type==='card'&&t.card===card&&t.invoiceMonth===m).forEach(t=>t.status=status);save();toast(`Fatura ${status==='paid'?'paga':'pendente'}.`); if(page==='cardInvoice') setTimeout(drawInvoice,0)}
 
-function csvSplitLine(line){let out=[],cur='',q=false;for(let i=0;i<line.length;i++){let ch=line[i];if(ch==='"'){if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q}else if((ch===';'||ch===','||ch==='\t')&&!q){out.push(cur.trim());cur=''}else cur+=ch}out.push(cur.trim());return out}
+function detectCsvDelimiter(line){
+ let counts={';':0,',':0,'\t':0},q=false;
+ for(let i=0;i<String(line||'').length;i++){
+  let ch=line[i];
+  if(ch==='"'){if(q&&line[i+1]==='"'){i++}else q=!q;continue}
+  if(!q&&Object.prototype.hasOwnProperty.call(counts,ch))counts[ch]++;
+ }
+ if(counts[';']>0)return ';';
+ if(counts['\t']>0)return '\t';
+ return ',';
+}
+function csvSplitLine(line,delimiter){
+ let out=[],cur='',q=false;let sep=delimiter||detectCsvDelimiter(line);
+ for(let i=0;i<String(line||'').length;i++){
+  let ch=line[i];
+  if(ch==='"'){
+   if(q&&line[i+1]==='"'){cur+='"';i++}else q=!q;
+  }else if(ch===sep&&!q){out.push(cur.trim());cur=''}else cur+=ch;
+ }
+ out.push(cur.trim());return out;
+}
 function normalizeHeader(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')}
 function cleanImportText(s){return String(s||'').trim().replace(/\r/g,'')}
 function normalizeMerchant(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/\b(parc(?:ela)?\s*)?\d+\s*(?:\/|de|-)\s*\d+\b/gi,' ').replace(/\b(compra|credito|debito|brasil|br)\b/gi,' ').replace(/[^a-z0-9]+/g,' ').trim().replace(/\s+/g,' ')}
@@ -2119,13 +2139,60 @@ function txDuplicateReason(row){let norm=s=>String(s||'').normalize('NFD').repla
 function txExistsByImportId(importId,row){return !!txDuplicateReason({...row,importId})}
 function suggestCategoryForDescription(desc){ensureState();let key=normalizeMerchant(desc);if(!key)return 'Outros';if(state.importCategoryRules[key])return state.importCategoryRules[key];let candidates=(state.tx||[]).filter(t=>t.category&&normalizeMerchant(t.description)===key);if(candidates.length){let counts={};candidates.forEach(t=>counts[t.category]=(counts[t.category]||0)+1);return Object.entries(counts).sort((a,b)=>b[1]-a[1])[0][0]}return 'Outros'}
 function parseDateFlexible(raw,invoiceMonth){let s=String(raw||'').trim();if(!s)return (invoiceMonth||month())+'-01';if(/^\d{4}-\d{2}-\d{2}$/.test(s))return s;let m=s.match(/(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?/);if(m){let y=m[3]?Number(m[3]):Number(String(invoiceMonth||month()).slice(0,4));if(y<100)y+=2000;return `${y}-${String(Number(m[2])).padStart(2,'0')}-${String(Number(m[1])).padStart(2,'0')}`}return (invoiceMonth||month())+'-01'}
-function parseInvoiceImport(text,defaults={}){let raw=cleanImportText(text);if(!raw)return {rows:[],errors:['Nenhum conteúdo encontrado.']};let lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);if(!lines.length)return {rows:[],errors:['Nenhuma linha encontrada.']};let headers=csvSplitLine(lines[0]).map(normalizeHeader);let headerTokens=['data','descricao','valor','cartao','mes_fatura','parcela_atual','parcelas','parcelas_total','id_externo'];let hasHeader=headers.some(h=>headerTokens.includes(h));let rows=[];let errors=[];
- if(hasHeader){let map={};headers.forEach((h,i)=>map[h]=i);for(let li=1;li<lines.length;li++){let parts=csvSplitLine(lines[li]);let get=(...names)=>{for(let n of names){let idx=map[normalizeHeader(n)];if(idx!==undefined)return parts[idx]||''}return ''};let descricao=get('descricao','descrição','description','estabelecimento','historico','lançamento','lancamento');let valorRaw=get('valor','amount','valor_rs','preco');if(!descricao||!valorRaw){continue}let cartao=get('cartao','cartão','card')||defaults.cartao||'';let mes=get('mes_fatura','mês_fatura','mes','invoiceMonth')||defaults.mes_fatura||month();let data=parseDateFlexible(get('data','date','data_compra'),mes);let parcelas=Number(get('parcelas','parcelas_total','total_parcelas','installments')||0);let parcelaAtual=Number(get('parcela_atual','parcela','installment_index')||0);let auto=installmentParts(descricao);if(auto&&!parcelas){parcelas=auto.total;parcelaAtual=auto.index}if(!parcelas){parcelas=1;parcelaAtual=1}let valor=parseBR(valorRaw);let categoria=get('categoria','category')||suggestCategoryForDescription(descricao);let installment=parcelas>1?`${parcelaAtual}/${parcelas}`:'';let idExt=get('id_externo','id','external_id');rows.push({type:'card',date:data,description:descricao,category:categoria,amount:valor,card:cartao,invoiceMonth:mes,status:'pending',installment,installmentIndex:parcelaAtual||1,installmentTotal:parcelas||1,importId:idExt||'',source:'import'});}return {rows,errors};}
- // fallback for text extracted from PDFs: date + description + amount
+function parseInvoiceImport(text,defaults={}){
+ let raw=cleanImportText(text);
+ if(!raw)return {rows:[],errors:['Nenhum conteúdo encontrado.']};
+ let lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+ if(!lines.length)return {rows:[],errors:['Nenhuma linha encontrada.']};
+ let delimiter=detectCsvDelimiter(lines[0]);
+ let headers=csvSplitLine(lines[0],delimiter).map(normalizeHeader);
+ let headerTokens=['data','descricao','valor','cartao','mes_fatura','parcela_atual','parcelas','parcelas_total','id_externo'];
+ let hasHeader=headers.some(h=>headerTokens.includes(h));
+ let rows=[],errors=[];
+ if(hasHeader){
+  let map={};headers.forEach((h,i)=>map[h]=i);
+  for(let li=1;li<lines.length;li++){
+   let parts=csvSplitLine(lines[li],delimiter);
+   let get=(...names)=>{for(let n of names){let idx=map[normalizeHeader(n)];if(idx!==undefined)return parts[idx]||''}return ''};
+   let descricao=get('descricao','descrição','description','estabelecimento','historico','lançamento','lancamento');
+   let valorRaw=get('valor','amount','valor_rs','preco');
+   if(!descricao||!valorRaw)continue;
+   let cartao=get('cartao','cartão','card')||defaults.cartao||'';
+   let mes=get('mes_fatura','mês_fatura','mes','invoiceMonth')||defaults.mes_fatura||month();
+   let data=parseDateFlexible(get('data','date','data_compra'),mes);
+   let parcelas=Number(get('parcelas','parcelas_total','total_parcelas','installments')||0);
+   let parcelaAtual=Number(get('parcela_atual','parcela','installment_index')||0);
+   let auto=installmentParts(descricao);
+   if(auto&&(!parcelas||!parcelaAtual)){parcelas=auto.total;parcelaAtual=auto.index}
+   if(!parcelas)parcelas=1;
+   if(!parcelaAtual)parcelaAtual=1;
+   if(parcelaAtual<1||parcelas<1||parcelaAtual>parcelas){
+    if(auto&&auto.index>=1&&auto.total>=auto.index){parcelaAtual=auto.index;parcelas=auto.total}
+    else{errors.push(`Linha ${li+1}: parcela inválida ${parcelaAtual}/${parcelas} em ${descricao}. Lançamento ignorado.`);continue}
+   }
+   let valor=parseBR(valorRaw);
+   let categoria=get('categoria','category')||suggestCategoryForDescription(descricao);
+   let installment=parcelas>1?`${parcelaAtual}/${parcelas}`:'';
+   let idExt=get('id_externo','id','external_id');
+   rows.push({type:'card',date:data,description:descricao,category:categoria,amount:valor,card:cartao,invoiceMonth:mes,status:'pending',installment,installmentIndex:parcelaAtual,installmentTotal:parcelas,importId:idExt||'',source:'import'});
+  }
+  return {rows,errors};
+ }
  let skip=/\b(total|pagamento|pagamentos|limite|vencimento|saldo|iof|juros|encargos|anuidade|melhor data|fechamento|fatura anterior|credito rotativo)\b/i;
- for(let li=0;li<lines.length;li++){let line=lines[li].replace(/\s+/g,' ').trim();if(skip.test(line))continue;let dm=line.match(/^(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?)\s+(.+?)\s+(-?R?\$?\s*[\d.]+,\d{2})$/i);if(!dm)dm=line.match(/^(\d{1,2}[\/\-.]\d{1,2})\s+(.+?)\s+(-?[\d.]+,\d{2})$/);if(!dm)continue;let data=parseDateFlexible(dm[1],defaults.mes_fatura||month());let descricao=dm[2].trim();let valor=parseBR(dm[3]);if(!descricao||!valor)continue;let auto=installmentParts(descricao);let parcelas=auto?auto.total:1,parcelaAtual=auto?auto.index:1;rows.push({type:'card',date:data,description:descricao,category:suggestCategoryForDescription(descricao),amount:Math.abs(valor),card:defaults.cartao||'',invoiceMonth:defaults.mes_fatura||month(),status:'pending',installment:parcelas>1?`${parcelaAtual}/${parcelas}`:'',installmentIndex:parcelaAtual,installmentTotal:parcelas,importId:'',source:'import'});}
- if(!rows.length)errors.push('Não consegui identificar compras automaticamente neste arquivo.');return {rows,errors};}
-function importPromptText(){return `Leia a fatura anexada e extraia SOMENTE os lançamentos de compras. Ignore totais, pagamentos, saldo, limite, IOF, juros, vencimento, cabeçalhos e mensagens do banco.\n\nDevolva somente CSV usando ponto e vírgula (;), com exatamente estas colunas:\ndata;descricao;valor;parcela_atual;parcelas_total\n\nRegras:\n1. Uma linha por compra.\n2. Data no formato AAAA-MM-DD.\n3. Valor positivo com vírgula decimal, exemplo 166,50.\n4. Se a descrição indicar parcela, informe parcela_atual e parcelas_total. Ex.: 2/5 = 2 e 5.\n5. Se não for parcelada, use 1 e 1.\n6. Não invente categoria, cartão ou mês da fatura. O BILLY fará isso depois.\n7. Não escreva explicações antes ou depois do CSV.\n\nExemplo:\ndata;descricao;valor;parcela_atual;parcelas_total\n2026-09-05;Mercado X;180,50;1;1\n2026-09-12;MAGALU 2/5;179,90;2;5`;}
+ for(let li=0;li<lines.length;li++){
+  let line=lines[li].replace(/\s+/g,' ').trim();if(skip.test(line))continue;
+  let dm=line.match(/^(\d{1,2}[\/\-.]\d{1,2}(?:[\/\-.]\d{2,4})?)\s+(.+?)\s+(-?R?\$?\s*[\d.]+,\d{2})$/i);
+  if(!dm)dm=line.match(/^(\d{1,2}[\/\-.]\d{1,2})\s+(.+?)\s+(-?[\d.]+,\d{2})$/);
+  if(!dm)continue;
+  let data=parseDateFlexible(dm[1],defaults.mes_fatura||month());let descricao=dm[2].trim();let valor=parseBR(dm[3]);if(!descricao||!valor)continue;
+  let auto=installmentParts(descricao);let parcelas=auto?auto.total:1,parcelaAtual=auto?auto.index:1;
+  if(parcelaAtual>parcelas){errors.push(`Linha ${li+1}: parcela inválida ${parcelaAtual}/${parcelas} em ${descricao}.`);continue}
+  rows.push({type:'card',date:data,description:descricao,category:suggestCategoryForDescription(descricao),amount:Math.abs(valor),card:defaults.cartao||'',invoiceMonth:defaults.mes_fatura||month(),status:'pending',installment:parcelas>1?`${parcelaAtual}/${parcelas}`:'',installmentIndex:parcelaAtual,installmentTotal:parcelas,importId:'',source:'import'});
+ }
+ if(!rows.length)errors.push('Não consegui identificar compras automaticamente neste arquivo.');
+ return {rows,errors};
+}
+function importPromptText(){return `Leia a fatura anexada e extraia SOMENTE os lançamentos de compras. Ignore totais, pagamentos, saldo, limite, IOF, juros, vencimento, cabeçalhos e mensagens do banco.\n\nDevolva somente CSV usando ponto e vírgula (;), com exatamente estas colunas:\ndata;descricao;valor;parcela_atual;parcelas_total\n\nRegras:\n1. Uma linha por compra.\n2. Data no formato AAAA-MM-DD.\n3. Valor positivo com vírgula decimal, exemplo 166,50.\n4. Se a compra mostrar parcelamento em QUALQUER lugar do lançamento, inclusive ao lado do nome como “2 de 10”, “5/10” ou “1 de 4”, informe obrigatoriamente parcela_atual e parcelas_total. A informação não precisa estar dentro da descrição. Ex.: “2 de 10” = 2 e 10.\n5. Nunca coloque parcela_atual maior que parcelas_total. Ex.: 10/10 é válido; 32/10 é impossível e está errado.\n6. Se não for parcelada, use 1 e 1.\n7. Preserve a vírgula decimal dentro do campo valor e mantenha o ponto e vírgula (;) como separador das colunas. Ex.: 68,32 deve permanecer inteiro no campo valor.\n8. Não invente categoria, cartão ou mês da fatura. O BILLY fará isso depois.\n9. Não escreva explicações antes ou depois do CSV.\n\nExemplo:\ndata;descricao;valor;parcela_atual;parcelas_total\n2026-09-05;Mercado X;180,50;1;1\n2026-09-12;MAGALU 2/5;179,90;2;5`;}
 let invoiceImportDraft={rows:[],errors:[],fileName:'',defaults:{}};
 function setImportSubmitLabel(label){let btn=document.querySelector('#modalForm .modal-foot .btn.primary');if(btn)btn.textContent=label||'Salvar'}
 function copyImportPrompt(){let txt=importPromptText();navigator.clipboard?.writeText(txt).then(()=>toast('Instrução copiada.')).catch(()=>{let el=document.getElementById('aiPromptBox');if(el){el.focus();el.select?.()}toast('Copie a instrução manualmente.');})}
