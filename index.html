@@ -4327,5 +4327,166 @@ body.light-theme .v121-card-totals .invoice-total-main small{color:#64748b!impor
 }
 </style>
 
+
+<style id="v125-clean-cards-categories">
+/* V125 — cards/cartoes e categorias mais compactos */
+.cards-catalog{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12px!important;align-items:start!important}
+.credit-card-item{padding:12px!important;border-radius:17px!important;display:grid!important;gap:9px!important;overflow:visible!important}
+.credit-card-head{margin:0!important}
+.credit-card-ident{gap:10px!important;min-width:0!important}
+.credit-card-logo{width:46px!important;height:46px!important;border-radius:12px!important;padding:5px!important;flex:0 0 46px!important}
+.credit-card-ident strong{font-size:15px!important;line-height:1.15!important}
+.credit-card-ident small{font-size:10.5px!important;line-height:1.25!important;margin-top:2px!important}
+.v114-card-brand{margin-top:4px!important;gap:5px!important}
+.v114-brand-logo,.v116-brand-mark{height:17px!important;max-width:44px!important}
+.credit-card-meta-row{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin:0!important;min-height:30px!important}
+.credit-card-status .pill{padding:4px 8px!important;font-size:10px!important}
+.credit-card-toggle{min-height:30px!important;padding:5px 9px!important;font-size:10px!important;border-radius:9px!important}
+.credit-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important;margin:0!important}
+.credit-card-grid .mini-stat{min-height:58px!important;padding:8px 9px!important;border-radius:11px!important}
+.credit-card-grid .mini-stat:nth-child(2){display:block!important}
+.credit-card-grid .mini-stat:nth-child(4){display:none!important}
+.credit-card-grid .label{font-size:8px!important;line-height:1.1!important}
+.credit-card-grid .value{font-size:14px!important;line-height:1.15!important;margin-top:4px!important;white-space:nowrap!important}
+.usage-block{padding:8px 9px!important;border-radius:11px!important;margin:0!important}
+.usage-head{font-size:9px!important;gap:8px!important;margin-bottom:6px!important}
+.usage-head span:last-child{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;text-align:right!important}
+.usage-block .progress{height:6px!important}
+.credit-card-top-actions{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;gap:7px!important;align-items:center!important;margin:0!important}
+.credit-card-top-actions .btn.primary{min-height:34px!important;padding:6px 10px!important;border-radius:10px!important;font-size:11px!important}
+.card-action-btn{width:34px!important;height:34px!important;min-width:34px!important}
+
+/* detalhe de fatura */
+.invoice-detail-shell{display:grid;gap:12px}
+.invoice-detail-summary{display:grid;grid-template-columns:1.2fr repeat(3,minmax(0,.7fr)) auto;gap:8px;align-items:stretch}
+.invoice-detail-card{border:1px solid var(--line);background:rgba(11,18,32,.55);border-radius:14px;padding:10px 12px;min-width:0}
+.invoice-detail-card .k{font-size:9px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);font-weight:900}
+.invoice-detail-card .v{font-size:17px;font-weight:950;margin-top:4px}
+.invoice-detail-ident{display:flex;align-items:center;gap:10px}
+.invoice-detail-ident .credit-card-logo{width:42px!important;height:42px!important;flex-basis:42px!important}
+.invoice-detail-actions{display:flex;gap:7px;align-items:center;justify-content:flex-end}
+.invoice-detail-actions .btn{white-space:nowrap}
+.invoice-detail-list{border:1px solid var(--line);border-radius:15px;overflow:hidden;background:rgba(11,18,32,.35)}
+.invoice-detail-list .invoice-transactions{padding:8px}
+
+/* categorias de configuracoes mais compactas */
+.settings-card{border-radius:16px!important}
+.settings-card-title{padding-bottom:8px!important;margin-bottom:8px!important}
+.settings-category-list{display:grid!important;grid-template-columns:repeat(3,minmax(220px,1fr))!important;gap:7px 8px!important;align-items:start!important}
+.settings-category-list .cat-row{margin:0!important;padding:0!important;min-width:0!important}
+.settings-category-list .cat-inline{min-height:48px!important;padding:5px 7px!important;border-radius:12px!important;gap:8px!important}
+.settings-category-list .cat-emoji-box{width:34px!important;height:34px!important;flex:0 0 34px!important;border-radius:9px!important;font-size:17px!important}
+.settings-category-list .cat-name-display{font-size:13px!important;font-weight:800!important}
+.settings-category-list .cat-menu-btn{width:32px!important;height:32px!important;font-size:21px!important}
+.settings-section-head{margin-bottom:10px!important}
+.settings-section-head h3{margin-bottom:2px!important}
+.settings-subtabs{margin-bottom:10px!important}
+.settings-subtab-btn{min-height:38px!important;padding:7px 10px!important}
+
+/* analise por categoria compacta */
+.category-analysis-panel .panel-body{padding:12px!important}
+.category-analysis-toolbar{margin-bottom:9px!important}
+.category-analysis-toolbar .field{max-width:320px!important}
+.category-analysis-toolbar select{min-height:42px!important}
+.category-analysis-summary{gap:8px!important}
+.category-analysis-header{padding:9px 11px!important;border-radius:12px!important}
+.category-analysis-chip{width:36px!important;height:36px!important;flex-basis:36px!important;border-radius:10px!important;font-size:18px!important}
+.category-analysis-header strong{font-size:14px!important}
+.category-analysis-header small{font-size:10px!important}
+.category-analysis-metrics{gap:8px!important}
+.category-analysis-metrics .card{min-height:70px!important;padding:9px 11px!important}
+.category-analysis-metrics .card .k{font-size:8px!important}
+.category-analysis-metrics .card .v{font-size:17px!important}
+
+body.light-theme .invoice-detail-card,body.light-theme .invoice-detail-list{background:#fff!important;border-color:#d8e4ee!important;color:#172033!important}
+
+@media(max-width:1280px){
+  .settings-category-list{grid-template-columns:repeat(2,minmax(220px,1fr))!important}
+  .invoice-detail-summary{grid-template-columns:1fr repeat(2,minmax(0,.7fr))!important}
+  .invoice-detail-actions{grid-column:1/-1;justify-content:flex-start}
+}
+@media(max-width:900px){
+  .cards-catalog{grid-template-columns:1fr!important}
+  .settings-category-list{grid-template-columns:1fr!important}
+}
+@media(max-width:760px){
+  .credit-card-item{padding:10px!important;gap:8px!important;border-radius:15px!important}
+  .credit-card-logo{width:43px!important;height:43px!important;flex-basis:43px!important}
+  .credit-card-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px!important}
+  .credit-card-grid .mini-stat{min-height:54px!important;padding:7px!important}
+  .credit-card-grid .label{font-size:7.5px!important}
+  .credit-card-grid .value{font-size:12.5px!important}
+  .usage-head{grid-template-columns:1fr!important;display:grid!important}
+  .usage-head span:last-child{text-align:left!important}
+  .invoice-detail-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .invoice-detail-ident{grid-column:1/-1}
+  .invoice-detail-actions{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}
+  .invoice-detail-actions .btn{width:100%}
+  .settings-category-list{gap:6px!important}
+  .settings-category-list .cat-inline{min-height:46px!important}
+}
+</style>
+<script id="v125-cards-invoice-functions">
+function showCardInvoices(cardName){
+  selectedInvoiceCard=cardName||'';
+  localStorage.setItem('fin.selectedCard',selectedInvoiceCard);
+  page='cardInvoice';
+  localStorage.setItem('fin.page','cardInvoice');
+  closeMobileMenu();
+  render();
+}
+function renderCardInvoicePage(){ drawInvoice(); }
+function drawInvoice(){
+  const card=state.cards.find(c=>c.name===selectedInvoiceCard)||state.cards[0];
+  if(!card){ $('#view').innerHTML='<div class="panel"><div class="panel-body"><div class="empty">Nenhum cartão cadastrado.</div></div></div>'; return; }
+  selectedInvoiceCard=card.name;
+  localStorage.setItem('fin.selectedCard',card.name);
+  const m=month();
+  const rows=sortedTxRows(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.invoiceMonth===m));
+  const total=sum(rows,'amount');
+  const paid=invoicePaid(rows);
+  const pending=sum(rows.filter(r=>r.status!=='paid'),'amount');
+  const limit=Number(card.limit||0);
+  const available=limit-sum(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.status!=='paid'),'amount');
+  const logoSrc=logoForCard(card.name);
+  const logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(card.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(card.name||'??').slice(0,2).toUpperCase())}</div>`;
+  const toggle=rows.length?`<button class="btn small ${paid?'yellow':'green'}" onclick="setInvoiceStatus('${String(card.name).replace(/'/g,"\\'")}','${m}','${paid?'pending':'paid'}')">${paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+  $('#view').innerHTML=`<div class="invoice-detail-shell">
+    <div class="invoice-detail-summary">
+      <div class="invoice-detail-card invoice-detail-ident">${logo}<div><div class="k">Cartão</div><div class="v">${esc(card.name)}</div><small class="muted">Fecha dia ${card.closingDay} · vence dia ${card.dueDay}</small></div></div>
+      <div class="invoice-detail-card"><div class="k">Fatura</div><div class="v ${paid?'positive':'negative'}">${money(total)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Pendente</div><div class="v ${pending?'negative':'positive'}">${money(pending)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Disponível</div><div class="v ${available<0?'negative':'positive'}">${money(available)}</div></div>
+      <div class="invoice-detail-actions"><button class="btn small ghost" onclick="setPage('cards')">← Cartões</button>${toggle}</div>
+    </div>
+    <div class="invoice-detail-list">${invoiceCompactList(rows)}</div>
+  </div>`;
+}
+
+renderCards=function(){
+  const m=month();
+  const rows=state.cards.map(c=>{
+    const stats=cardMonthMetrics(c.name,m), limit=Number(c.limit)||0, pendingTotal=stats.pendingAll||0, available=limit-pendingTotal;
+    const rawPct=limit?(pendingTotal/limit)*100:0, pct=Math.max(0,Math.min(100,rawPct));
+    const statusHtml=stats.monthRows.length?statusPill(stats.paid?'paid':'pending'):'<span class="pill neutral">Sem fatura</span>';
+    const toggleBtn=stats.monthRows.length?`<button class="btn small ${stats.paid?'yellow':'green'} credit-card-toggle" onclick="setInvoiceStatus('${String(c.name).replace(/'/g,"\\'")}','${m}','${stats.paid?'pending':'paid'}')">${stats.paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+    const logoSrc=logoForCard(c.name), logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(c.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(c.name||'??').slice(0,2).toUpperCase())}</div>`;
+    const usedPct=Math.round(rawPct||0), invoiceTone=stats.total>0?(stats.paid?'green':'blue'):'blue';
+    return `<article class="credit-card-item">
+      <div class="credit-card-head"><div class="credit-card-ident">${logo}<div><strong>${esc(c.name)}</strong><small>Fecha ${c.closingDay} · vence ${c.dueDay}</small></div></div></div>
+      <div class="credit-card-meta-row"><div class="credit-card-status">${statusHtml}</div>${toggleBtn||'<span></span>'}</div>
+      <div class="credit-card-grid">
+        <div class="mini-stat"><span class="label">Fatura de ${monthName(m)}</span><span class="value small ${invoiceTone}">${money(stats.total)}</span></div>
+        <div class="mini-stat"><span class="label">Disponível</span><span class="value small ${available<0?'red':'green'}">${money(available)}</span></div>
+        <div class="mini-stat"><span class="label">Limite</span><span class="value small">${money(limit)}</span></div>
+      </div>
+      <div class="usage-block"><div class="usage-head"><span><strong>Uso ${usedPct}%</strong></span><span>${money(pendingTotal)} pendente</span></div><div class="progress"><span style="width:${pct}%"></span></div></div>
+      <div class="credit-card-top-actions"><button class="btn small primary" onclick="showCardInvoices(${JSON.stringify(c.name).replace(/"/g,'&quot;')})">Ver fatura</button>${cardActionMenuHtml(c.id)}</div>
+    </article>`;
+  }).join('');
+  $('#view').innerHTML=panel('Cartões cadastrados',`<div class="toolbar"><button class="btn primary" onclick="openImportInvoice()">⇩ Importar fatura</button><button class="btn primary" onclick="openCard()">+ Novo cartão</button></div>`,`<div class="cards-catalog">${rows||'<div class="empty">Nenhum cartão cadastrado.</div>'}</div>`);
+}
+</script>
+
 </body>
 </html>
