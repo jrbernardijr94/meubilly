@@ -1225,6 +1225,30 @@ body.light-theme #modalBack .modal-foot{background:#fff!important}
 }
 </style>
 
+
+<style id="v127-alpha-card-select-month">
+.credit-card-item{position:relative!important}
+.card-bulk-check{
+  position:absolute;left:10px;top:10px;z-index:8;
+  width:22px;height:22px;border-radius:7px;
+  display:grid;place-items:center;
+  background:rgba(7,18,31,.92);border:1px solid rgba(125,211,252,.34);
+  box-shadow:0 5px 16px rgba(0,0,0,.18)
+}
+.card-bulk-check input{width:15px;height:15px;margin:0;accent-color:#14b8a6;cursor:pointer}
+.credit-card-item.has-bulk-select .credit-card-head{padding-left:30px!important}
+.cards-bulk-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.cards-bulk-count{font-size:12px;color:var(--muted);font-weight:800}
+.cards-bulk-delete[disabled]{opacity:.42;cursor:not-allowed;filter:saturate(.35)}
+body.light-theme .card-bulk-check{background:#fff;border-color:#bfd4e6}
+@media(max-width:760px){
+  .card-bulk-check{left:8px;top:8px;width:21px;height:21px}
+  .credit-card-item.has-bulk-select .credit-card-head{padding-left:28px!important}
+  .cards-bulk-actions{width:100%}
+  .cards-bulk-actions .btn{flex:1}
+}
+</style>
+
 </head>
 <body>
 <div class="login-screen" id="loginScreen"></div>
@@ -1283,7 +1307,7 @@ function emptyData(){return {categories:[],cards:[],tx:[],budgets:[],categoryMet
 function readLegacyLocalSnapshot(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return JSON.parse(raw);for(let k of LEGACY_KEYS){let legacy=localStorage.getItem(k);if(legacy)return JSON.parse(legacy)}return null}catch(e){return null}}
 const legacyLocalSnapshot=readLegacyLocalSnapshot();
 function billyCurrentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-let state=emptyData(); ensureState(); let currentMonth=billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
+let state=emptyData(); ensureState(); let currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
 let supabaseSyncTimer=null; let supabaseSyncBusy=false; let remoteStateReady=false;
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function workspaceCacheKey(){return authProfile?.current_workspace_id?`fin.workspace.${authProfile.current_workspace_id}.cache`:null}
@@ -1439,7 +1463,8 @@ async function applySupabaseSession(session){
    const workspaceChanged=await preferWorkspaceWithData();
    if(workspaceChanged)await loadSupabaseProfile();
    await loadWorkspaceAccess();
-   currentMonth=billyCurrentMonthKey();
+   currentMonth=localStorage.getItem('fin.currentMonth')||currentMonth||billyCurrentMonthKey();
+   localStorage.setItem('fin.currentMonth',currentMonth);
    let remoteHasData=false;
    try{remoteHasData=await loadWorkspaceFinancialDataReliable()}catch(err){console.error('BILLY dados:',err);state=emptyData();ensureState();remoteStateReady=true;toast('Não consegui carregar seus dados. Atualize a página e tente novamente.');}
    render();
@@ -1542,9 +1567,9 @@ async function logout(){
  authUser=null;authProfile=null;currentUser='';renderLogin();
 }
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
-function ensureState(){state.categoryMeta=state.categoryMeta||{};state.categoryTypes=state.categoryTypes||{};state.importCategoryRules=state.importCategoryRules||{};state.categories=[...new Set((state.categories||[]).filter(Boolean))];let incomeSeen=new Set((state.tx||[]).filter(t=>t.type==='income').map(t=>t.category).filter(Boolean));state.categories.forEach(c=>{if(!state.categoryMeta[c])state.categoryMeta[c]=CATEGORY_EMOJIS[c]||'🏷️';if(!state.categoryTypes[c])state.categoryTypes[c]=incomeSeen.has(c)?'income':'expense'});(state.cards||[]).forEach(c=>{if(!c.logo)c.logo=logoForCard(c.name)})}
-function incomeCategories(){ensureState();let seen=(state.tx||[]).filter(t=>t.type==='income').map(t=>t.category).filter(Boolean);let base=(state.categories||[]).filter(c=>state.categoryTypes?.[c]==='income');let list=[...new Set([...base,...seen])];return list.length?list:[]}
-function expenseCategories(){ensureState();let seen=(state.tx||[]).filter(t=>t.type!=='income').map(t=>t.category).filter(Boolean);let base=(state.categories||[]).filter(c=>(state.categoryTypes?.[c]||'expense')==='expense');let list=[...new Set([...base,...seen])];return list.length?list:[]}
+function ensureState(){state.categoryMeta=state.categoryMeta||{};state.categoryTypes=state.categoryTypes||{};state.importCategoryRules=state.importCategoryRules||{};state.categories=[...new Set((state.categories||[]).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));let incomeSeen=new Set((state.tx||[]).filter(t=>t.type==='income').map(t=>t.category).filter(Boolean));state.categories.forEach(c=>{if(!state.categoryMeta[c])state.categoryMeta[c]=CATEGORY_EMOJIS[c]||'🏷️';if(!state.categoryTypes[c])state.categoryTypes[c]=incomeSeen.has(c)?'income':'expense'});(state.cards||[]).forEach(c=>{if(!c.logo)c.logo=logoForCard(c.name)})}
+function incomeCategories(){ensureState();let seen=(state.tx||[]).filter(t=>t.type==='income').map(t=>t.category).filter(Boolean);let base=(state.categories||[]).filter(c=>state.categoryTypes?.[c]==='income');let list=[...new Set([...base,...seen])];return list.length?list.sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'})):[]}
+function expenseCategories(){ensureState();let seen=(state.tx||[]).filter(t=>t.type!=='income').map(t=>t.category).filter(Boolean);let base=(state.categories||[]).filter(c=>(state.categoryTypes?.[c]||'expense')==='expense');let list=[...new Set([...base,...seen])];return list.length?list.sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'})):[]}
 function txActionButton(type){let isIncome=type==='income';return `<button class="btn ${isIncome?'green':'red'} add-entry-btn" onclick="openTx('${type}')"><span class="plus">+</span><span>${isIncome?'Nova receita':'Nova despesa'}</span></button>`}
 function catEmoji(c){return (state.categoryMeta&&state.categoryMeta[c])||CATEGORY_EMOJIS[c]||'🏷️'}
 function isImgIcon(i){return String(i||'').startsWith('data:image')}
@@ -1558,7 +1583,7 @@ function cardLogo(name){let src=logoForCard(name);return src?`<img class="card-l
 function month(){return currentMonth||billyCurrentMonthKey()} function monthName(m){let [y,mo]=m.split('-');return new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}
 function initMonthControls(){let ySel=$('#yearPicker'),mSel=$('#monthSelect');if(!ySel||!mSel)return;let years=new Set([new Date().getFullYear(),new Date().getFullYear()+1,2026,2027,2028,2029,2030]);(state.tx||[]).forEach(t=>{let d=t.invoiceMonth||t.date||'';if(d)years.add(Number(String(d).slice(0,4)))});(state.budgets||[]).forEach(b=>{if(b.month)years.add(Number(String(b.month).slice(0,4)))});let sorted=[...years].filter(Boolean).sort((a,b)=>a-b);let [cy,cm]=String(currentMonth||billyCurrentMonthKey()).split('-');ySel.innerHTML=sorted.map(y=>`<option value="${y}" ${String(y)===cy?'selected':''}>${y}</option>`).join('');let meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];mSel.innerHTML=meses.map((nome,i)=>{let v=String(i+1).padStart(2,'0');return `<option value="${v}" ${v===cm?'selected':''}>${nome}</option>`}).join('')}
 function updateMonthControls(){let ySel=$('#yearPicker'),mSel=$('#monthSelect');if(!ySel||!mSel)return;let [y,m]=String(currentMonth||billyCurrentMonthKey()).split('-');if(![...ySel.options].some(o=>o.value===y)){ySel.insertAdjacentHTML('beforeend',`<option value="${y}">${y}</option>`)}ySel.value=y;mSel.value=m}
-function setMonthFromControls(){let y=$('#yearPicker')?.value||String(new Date().getFullYear());let m=$('#monthSelect')?.value||String(new Date().getMonth()+1).padStart(2,'0');currentMonth=`${y}-${m}`;localStorage.setItem('fin.month.v59',currentMonth);localStorage.setItem('fin.month.v58',currentMonth);localStorage.setItem('fin.month.v59',currentMonth);localStorage.setItem('fin.month.v58',currentMonth);localStorage.setItem('fin.month.v55',currentMonth);localStorage.setItem('fin.month.v54',currentMonth);render()}
+function setMonthFromControls(){let y=$('#yearPicker')?.value||String(new Date().getFullYear());let m=$('#monthSelect')?.value||String(new Date().getMonth()+1).padStart(2,'0');currentMonth=`${y}-${m}`;localStorage.setItem('fin.currentMonth',currentMonth);localStorage.setItem('fin.month.v59',currentMonth);localStorage.setItem('fin.month.v58',currentMonth);localStorage.setItem('fin.month.v55',currentMonth);localStorage.setItem('fin.month.v54',currentMonth);render()}
 function money(n){return BRL.format(Number(n||0))} function signedMoney(n){let v=Number(n||0);return `${v>=0?'+':'-'}${money(Math.abs(v))}`} function fmtDate(d){if(!d)return'';let [y,m,da]=d.split('-');return `${da}/${m}/${y}`}
 function isoDate(d){return d.toISOString().slice(0,10)} function todayISO(){return isoDate(new Date())} function addDaysISO(base,days){let d=new Date(base+'T00:00:00');d.setDate(d.getDate()+days);return isoDate(d)}
 function addMonthsISO(base,months){let d=new Date(base+'T00:00:00');let day=d.getDate();d.setMonth(d.getMonth()+months);if(d.getDate()<day)d.setDate(0);return isoDate(d)} function addMonthsKey(key,months){let [y,m]=key.split('-').map(Number);let d=new Date(y,m-1+months,1);return isoDate(d).slice(0,7)}
@@ -1944,7 +1969,7 @@ async function removeWorkspaceAccess(kind,userId,emailEnc){
 
 function renderCategories(){let source=expenseCategories();let selected=(selectedAnalysisCategory&&source.includes(selectedAnalysisCategory))?selectedAnalysisCategory:source[0];let opts=source.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('');$('#view').innerHTML=`<div class="panel category-analysis-panel"><div class="panel-body category-analysis-body"><div class="category-analysis-toolbar"><div class="field"><label>Categoria</label><select id="catSel" onchange="selectedAnalysisCategory=this.value;localStorage.setItem('fin.selectedCategory',this.value);drawCategory()">${opts}</select></div></div><div id="catBox" class="category-analysis-box"></div></div></div>`;drawCategory()}
 function drawCategory(){let source=expenseCategories();let cat=$('#catSel')?.value||selectedAnalysisCategory||source[0];selectedAnalysisCategory=cat;let rows=sortedTxRows(state.tx.filter(t=>inMonth(t)&&t.type!=='income'&&t.category===cat));let total=sum(rows,'amount');$('#catBox').innerHTML=`<div class="category-analysis-summary"><div class="category-analysis-header"><div class="category-analysis-chip">${iconVisual(catEmoji(cat))}</div><div><strong>${esc(cat)}</strong><small>Veja quais lançamentos compõem esta categoria no mês selecionado.</small></div></div><div class="category-analysis-metrics"><div class="card red"><div class="k">Total da categoria</div><div class="v">${money(total)}</div></div><div class="card blue"><div class="k">Lançamentos</div><div class="v">${rows.length}</div></div></div></div>${categoryCompactList(rows)}`}
-function categoryOptions(selected='',kind='expense'){let source=kind==='income'?incomeCategories():(kind==='all'?state.categories:expenseCategories());if(selected && !source.includes(selected))source=[selected,...source];return source.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('')} function cardOptions(selected=''){return state.cards.map(c=>`<option ${c.name===selected?'selected':''}>${c.name}</option>`).join('')}
+function categoryOptions(selected='',kind='expense'){let source=kind==='income'?incomeCategories():(kind==='all'?[...(state.categories||[])]:expenseCategories());if(selected && !source.includes(selected))source=[...source,selected];source=[...new Set(source)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));return source.map(c=>`<option value="${esc(c)}" ${c===selected?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('')} function cardOptions(selected=''){return [...(state.cards||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'})).map(c=>`<option ${c.name===selected?'selected':''}>${c.name}</option>`).join('')}
 
 function openCategoryManager(){localStorage.setItem('fin.settingsTab','categories');localStorage.setItem('fin.settingsCategoryTab','expense');setPage('cadastro')}
 function catEditRow(original='',emoji='🏷️',name='',kind='expense'){let rid=uid();return `<div class="cat-row" data-row-id="${rid}" data-original="${esc(original)}" data-kind="${esc(kind)}"><div class="cat-inline"><div class="cat-emoji-box" data-role="emojiView">${iconVisual(emoji)}</div><div class="cat-name-display" data-role="nameView">${esc(name)}</div><input class="cat-hidden-input" name="catEmoji" value="${esc(emoji)}"><input class="cat-hidden-input" name="catName" value="${esc(name)}"><div class="cat-menu-wrap"><button type="button" class="cat-menu-btn" aria-label="Mais opções" onclick="toggleCategoryMenu(this,event)">⋮</button><div class="cat-menu"><button type="button" onclick="editCategoryRow(this)">✏️ Editar nome</button><button type="button" onclick="editCategoryEmoji(this)">😊 Escolher ícone</button><button type="button" class="danger" onclick="deleteCategoryRow(this)">🗑️ Excluir</button></div></div></div></div>`}
@@ -1965,7 +1990,7 @@ function upsertCategoryState(original,name,emoji,kind){
   }else if(!state.categories.includes(name)){
     state.categories.push(name);
   }
-  state.categoryMeta[name]=emoji;state.categoryTypes[name]=kind;
+  state.categoryMeta[name]=emoji;state.categoryTypes[name]=kind;state.categories=[...new Set(state.categories||[])].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
   return persistCategoriesAndRefresh(original?'Categoria atualizada.':'Categoria criada.');
 }
 function editCategoryRow(btn){
@@ -2256,16 +2281,16 @@ function normalizeBudgetValue(v){
 function configuredIncomeCategories(){
   ensureState();
   let base=(state.categories||[]).filter(c=>state.categoryTypes?.[c]==='income');
-  if(base.length) return [...new Set(base)];
+  if(base.length) return [...new Set(base)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
   let seen=(state.tx||[]).filter(t=>t.type==='income').map(t=>t.category).filter(Boolean);
-  return [...new Set(seen)];
+  return [...new Set(seen)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
 }
 function configuredExpenseCategories(){
   ensureState();
   let base=(state.categories||[]).filter(c=>(state.categoryTypes?.[c]||'expense')==='expense');
-  if(base.length) return [...new Set(base)];
+  if(base.length) return [...new Set(base)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
   let seen=(state.tx||[]).filter(t=>t.type!=='income').map(t=>t.category).filter(Boolean);
-  return [...new Set(seen)];
+  return [...new Set(seen)].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
 }
 function budgetRows(){
   let cats=configuredExpenseCategories().slice().sort((a,b)=>a.localeCompare(b,'pt-BR'));
@@ -2412,7 +2437,7 @@ function budgetIncomeList(rows){
 }
 
 window.addEventListener('focus',()=>{if(authUser&&remoteStateReady&&!supabaseSyncBusy)loadWorkspaceFinancialData().then(()=>render()).catch(()=>{})});
-currentMonth=billyCurrentMonthKey(); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
+currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||currentMonth||billyCurrentMonthKey(); localStorage.setItem('fin.currentMonth',currentMonth); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
 
 window.addEventListener('resize',()=>{if(window.innerWidth>760)closeMobileMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
@@ -3591,7 +3616,7 @@ body.light-theme .v114-kpi,body.light-theme .v114-card,body.light-theme .credit-
   function bankByKey(k){return BANKS.find(x=>x[0]===k)} function brandByKey(k){return BRANDS.find(x=>x[0]===k)}
   function inferBank(name){let n=String(name||'').toLowerCase();for(let b of BANKS){if(b[0]!=='outro'&&(n.includes(b[0])||n.includes(b[1].toLowerCase().split(' ')[0])))return b[0]}if(n.includes('méliuz')||n.includes('meliuz'))return'pan';return'outro'}
   function monthFull(m){let [y,mo]=String(m||billyCurrentMonthKey()).split('-');let s=new Date(+y,+mo-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'});return s.charAt(0).toUpperCase()+s.slice(1)}
-  window.shiftBillyMonth=function(delta){let [y,mo]=month().split('-').map(Number);let d=new Date(y,mo-1+delta,1);currentMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;render()}
+  window.shiftBillyMonth=function(delta){let [y,mo]=month().split('-').map(Number);let d=new Date(y,mo-1+delta,1);currentMonth=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;localStorage.setItem('fin.currentMonth',currentMonth);render()}
   function periodHtml(){return `<div class="v114-period"><button type="button" onclick="shiftBillyMonth(-1)" aria-label="Mês anterior">‹</button><div class="v114-period-label">${ICONS.cal}<span>${monthFull(month())}</span></div><button type="button" onclick="shiftBillyMonth(1)" aria-label="Próximo mês">›</button></div>`}
   function installPeriod(){let toolbar=document.querySelector('.topbar .toolbar');if(toolbar&&page!=='cadastro'){toolbar.style.display='flex';let old=toolbar.querySelector('.v114-period');if(old)old.remove();toolbar.insertAdjacentHTML('afterbegin',periodHtml())}let hero=document.querySelector('.billy-mobile-hero');if(hero){hero.querySelector('.v114-period')?.remove();hero.insertAdjacentHTML('beforeend',periodHtml())}}
 
@@ -4553,6 +4578,90 @@ renderCards=function(){
   }).join('');
   $('#view').innerHTML=panel('Cartões cadastrados',`<div class="toolbar"><button class="btn primary" onclick="openImportInvoice()">⇩ Importar fatura</button><button class="btn primary" onclick="openCard()">+ Novo cartão</button></div>`,`<div class="cards-catalog">${rows||'<div class="empty">Nenhum cartão cadastrado.</div>'}</div>`);
 }
+</script>
+
+
+<script id="v127-functional-overrides">
+window.billySelectedCardIds = window.billySelectedCardIds || new Set();
+
+window.toggleBillyCardSelection=function(id,checked){
+  if(checked) window.billySelectedCardIds.add(String(id));
+  else window.billySelectedCardIds.delete(String(id));
+  updateBillyCardBulkUI();
+};
+
+window.updateBillyCardBulkUI=function(){
+  const n=window.billySelectedCardIds.size;
+  const count=document.getElementById('cardsBulkCount');
+  const btn=document.getElementById('cardsBulkDelete');
+  if(count) count.textContent=n ? `${n} selecionado${n===1?'':'s'}` : 'Selecione cartões para conferir ou excluir';
+  if(btn){btn.disabled=!n;btn.textContent=n?`Excluir selecionado${n===1?'':'s'} (${n})`:'Excluir selecionados'}
+};
+
+window.deleteBillySelectedCards=async function(){
+  const ids=[...window.billySelectedCardIds];
+  if(!ids.length)return;
+  const names=(state.cards||[]).filter(c=>ids.includes(String(c.id))).map(c=>c.name);
+  const act=await openConfirmModal({
+    title:'Excluir cartões selecionados',
+    message:`Excluir ${ids.length} cartão${ids.length===1?'':'ões'}? Os lançamentos já cadastrados serão mantidos, mas ficarão sem o cadastro desses cartões.`,
+    buttons:[{key:'cancel',text:'Cancelar',cls:'ghost'},{key:'confirm',text:'Excluir',cls:'red'}]
+  });
+  if(act!=='confirm')return;
+  state.cards=(state.cards||[]).filter(c=>!ids.includes(String(c.id)));
+  window.billySelectedCardIds.clear();
+  save();
+  toast(`${ids.length} cartão${ids.length===1?' excluído':'ões excluídos'}.`);
+};
+
+window.renderCards=function(){
+  const m=month();
+  const sortedCards=[...(state.cards||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+  const rows=sortedCards.map(c=>{
+    const stats=cardMonthMetrics(c.name,m), limit=Number(c.limit)||0, pendingTotal=stats.pendingAll||0, available=limit-pendingTotal;
+    const rawPct=limit?(pendingTotal/limit)*100:0, pct=Math.max(0,Math.min(100,rawPct));
+    const statusHtml=stats.monthRows.length?statusPill(stats.paid?'paid':'pending'):'<span class="pill neutral">Sem fatura</span>';
+    const toggleBtn=stats.monthRows.length?`<button class="btn small ${stats.paid?'yellow':'green'} credit-card-toggle" onclick="setInvoiceStatus('${String(c.name).replace(/'/g,"\\'")}','${m}','${stats.paid?'pending':'paid'}')">${stats.paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+    const logoSrc=logoForCard(c.name), logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(c.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(c.name||'??').slice(0,2).toUpperCase())}</div>`;
+    const usedPct=Math.round(rawPct||0), invoiceTone=stats.total>0?(stats.paid?'green':'blue'):'blue';
+    const checked=window.billySelectedCardIds.has(String(c.id))?'checked':'';
+    return `<article class="credit-card-item has-bulk-select">
+      <label class="card-bulk-check" title="Selecionar cartão"><input type="checkbox" ${checked} onchange="toggleBillyCardSelection('${esc(String(c.id))}',this.checked)" aria-label="Selecionar ${esc(c.name)}"></label>
+      <div class="credit-card-head"><div class="credit-card-ident">${logo}<div><strong>${esc(c.name)}</strong><small>Fecha ${c.closingDay} · vence ${c.dueDay}</small></div></div></div>
+      <div class="credit-card-meta-row"><div class="credit-card-status">${statusHtml}</div>${toggleBtn||'<span></span>'}</div>
+      <div class="credit-card-grid">
+        <div class="mini-stat"><span class="label">Fatura de ${monthName(m)}</span><span class="value small ${invoiceTone}">${money(stats.total)}</span></div>
+        <div class="mini-stat"><span class="label">Disponível</span><span class="value small ${available<0?'red':'green'}">${money(available)}</span></div>
+        <div class="mini-stat"><span class="label">Limite</span><span class="value small">${money(limit)}</span></div>
+      </div>
+      <div class="usage-block"><div class="usage-head"><span><strong>Uso ${usedPct}%</strong></span><span>${money(pendingTotal)} pendente</span></div><div class="progress"><span style="width:${pct}%"></span></div></div>
+      <div class="credit-card-top-actions"><button class="btn small primary" onclick="showCardInvoices(${JSON.stringify(c.name).replace(/"/g,'&quot;')})">Ver fatura</button>${cardActionMenuHtml(c.id)}</div>
+    </article>`;
+  }).join('');
+  const toolbar=`<div class="toolbar" style="justify-content:space-between;gap:10px;flex-wrap:wrap">
+    <div class="cards-bulk-actions">
+      <span id="cardsBulkCount" class="cards-bulk-count">${window.billySelectedCardIds.size?`${window.billySelectedCardIds.size} selecionado${window.billySelectedCardIds.size===1?'':'s'}`:'Selecione cartões para conferir ou excluir'}</span>
+      <button id="cardsBulkDelete" class="btn small red cards-bulk-delete" ${window.billySelectedCardIds.size?'':'disabled'} onclick="deleteBillySelectedCards()">Excluir selecionados</button>
+    </div>
+    <div class="cards-bulk-actions">
+      <button class="btn primary" onclick="openImportInvoice()">⇩ Importar fatura</button>
+      <button class="btn primary" onclick="openCard()">+ Novo cartão</button>
+    </div>
+  </div>`;
+  $('#view').innerHTML=panel('Cartões cadastrados',toolbar,`<div class="cards-catalog">${rows||'<div class="empty">Nenhum cartão cadastrado.</div>'}</div>`);
+  updateBillyCardBulkUI();
+};
+
+// Reforço de persistência: mudar de página/aba nunca volta ao mês atual.
+const _v127SetPage=window.setPage || setPage;
+window.setPage=function(p){
+  localStorage.setItem('fin.currentMonth',month());
+  return _v127SetPage(p);
+};
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='hidden') localStorage.setItem('fin.currentMonth',month());
+});
+window.addEventListener('beforeunload',()=>localStorage.setItem('fin.currentMonth',month()));
 </script>
 
 </body>
