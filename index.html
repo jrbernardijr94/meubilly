@@ -5566,5 +5566,218 @@ openImportInvoice=function(){
 })();
 </script>
 
+
+<style id="v132-history-category">
+.history-category-hint{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:6px;
+  padding:5px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  color:#67e8f9;
+  background:rgba(14,165,233,.10);
+  border:1px solid rgba(34,211,238,.22);
+}
+body.light-theme .history-category-hint{
+  color:#087f8c;
+  background:#ecfeff;
+  border-color:#a5e6ee;
+}
+.import-history-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  margin-left:6px;
+  font-size:10px;
+  font-weight:800;
+  color:#67e8f9;
+}
+body.light-theme .import-history-badge{color:#087f8c}
+</style>
+
+<script id="v132-history-category">
+function v132NormText(s){
+  return String(s||'')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/\b(parcela|parc)\s*\d+\s*(?:\/|de)\s*\d+\b/gi,' ')
+    .replace(/\b\d+\s*(?:\/|de)\s*\d+\b/g,' ')
+    .replace(/[*._\-\/]+/g,' ')
+    .replace(/[^\p{L}\p{N}\s]/gu,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+function v132BaseMerchant(s){
+  let n=v132NormText(s);
+  n=n
+    .replace(/\b(com|com br|br|ltda|me|eireli|sa|s a|pag|pgto|compra|loja|store|marketplace)\b/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+  const parts=n.split(' ').filter(Boolean);
+  return parts.slice(0,4).join(' ');
+}
+function v132TokenSet(s){
+  return new Set(v132NormText(s).split(' ').filter(x=>x.length>1));
+}
+function v132Similarity(a,b){
+  const na=v132NormText(a), nb=v132NormText(b);
+  if(!na||!nb) return 0;
+  if(na===nb) return 1;
+  const ba=v132BaseMerchant(a), bb=v132BaseMerchant(b);
+  if(ba && bb && ba===bb) return .92;
+  const A=v132TokenSet(a), B=v132TokenSet(b);
+  if(!A.size||!B.size) return 0;
+  let inter=0;
+  for(const t of A) if(B.has(t)) inter++;
+  const union=new Set([...A,...B]).size;
+  let j=union?inter/union:0;
+  if(ba && bb && (ba.includes(bb)||bb.includes(ba))) j=Math.max(j,.78);
+  return j;
+}
+function v132HistoricalCategory(description,opts={}){
+  const desc=String(description||'').trim();
+  if(!desc) return null;
+
+  const candidates=(state.tx||[])
+    .filter(t=>t && t.category && String(t.description||'').trim())
+    .filter(t=>opts.type?String(t.type||'')===String(opts.type):true)
+    .map(t=>({
+      category:t.category,
+      description:t.description,
+      date:t.date||'',
+      score:v132Similarity(desc,t.description)
+    }))
+    .filter(x=>x.score>=.45);
+
+  if(!candidates.length) return null;
+
+  const exact=candidates.filter(x=>x.score>=.98).sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+  if(exact.length){
+    return {category:exact[0].category,confidence:'high',reason:'Mesma descrição usada antes'};
+  }
+
+  const strong=candidates.filter(x=>x.score>=.78);
+  if(strong.length){
+    const counts={};
+    for(const x of strong){
+      const key=x.category;
+      if(!counts[key]) counts[key]={count:0,best:0,last:''};
+      counts[key].count++;
+      counts[key].best=Math.max(counts[key].best,x.score);
+      if(String(x.date)>String(counts[key].last)) counts[key].last=x.date;
+    }
+    const best=Object.entries(counts).sort((a,b)=>{
+      if(b[1].count!==a[1].count) return b[1].count-a[1].count;
+      if(b[1].best!==a[1].best) return b[1].best-a[1].best;
+      return String(b[1].last).localeCompare(String(a[1].last));
+    })[0];
+    if(best) return {category:best[0],confidence:'high',reason:'Categoria mais usada para este estabelecimento'};
+  }
+
+  const medium=candidates.filter(x=>x.score>=.55);
+  if(medium.length){
+    const counts={};
+    for(const x of medium){
+      const key=x.category;
+      if(!counts[key]) counts[key]={count:0,best:0,last:''};
+      counts[key].count++;
+      counts[key].best=Math.max(counts[key].best,x.score);
+      if(String(x.date)>String(counts[key].last)) counts[key].last=x.date;
+    }
+    const best=Object.entries(counts).sort((a,b)=>{
+      if(b[1].count!==a[1].count) return b[1].count-a[1].count;
+      if(b[1].best!==a[1].best) return b[1].best-a[1].best;
+      return String(b[1].last).localeCompare(String(a[1].last));
+    })[0];
+    if(best && best[1].count>=2) return {category:best[0],confidence:'medium',reason:'Histórico semelhante'};
+  }
+  return null;
+}
+function suggestCategoryFromHistoryOrRules(description,type='expense'){
+  const hist=v132HistoricalCategory(description,{type:type==='card'?'card':type});
+  if(hist) return {...hist,source:'history'};
+  return {category:suggestCategoryForDescription(description),confidence:'rule',reason:'Sugestão automática',source:'rule'};
+}
+
+/* Importação: prioriza histórico antes das regras */
+const _v132OldSuggestCategory = suggestCategoryForDescription;
+suggestCategoryForDescription=function(description){
+  const hist=v132HistoricalCategory(description,{});
+  if(hist) return hist.category;
+  return _v132OldSuggestCategory(description);
+};
+
+/* Modal manual/edição: atualiza categoria ao sair da descrição quando é novo lançamento */
+const _v132OldOpenTx = window.openTx;
+window.openTx=function(type='expense', id=null){
+  const result=_v132OldOpenTx(type,id);
+  requestAnimationFrame(()=>{
+    const desc=document.querySelector('#modalForm [name="description"]');
+    const cat=document.querySelector('#modalForm [name="category"]');
+    if(!desc||!cat) return;
+
+    let hint=document.getElementById('historyCategoryHint');
+    if(!hint){
+      hint=document.createElement('div');
+      hint.id='historyCategoryHint';
+      hint.className='history-category-hint';
+      hint.style.display='none';
+      cat.parentElement.appendChild(hint);
+    }
+
+    const applySuggestion=()=>{
+      if(id) return;
+      const txt=desc.value.trim();
+      if(!txt){hint.style.display='none';return}
+      const s=suggestCategoryFromHistoryOrRules(txt,type);
+      if(s?.category){
+        const exists=[...cat.options].some(o=>o.value===s.category);
+        if(exists) cat.value=s.category;
+        if(s.source==='history'){
+          hint.textContent=`↺ Sugerido pelo histórico: ${s.category}`;
+          hint.style.display='inline-flex';
+        }else{
+          hint.style.display='none';
+        }
+      }
+    };
+
+    desc.addEventListener('blur',applySuggestion);
+    desc.addEventListener('change',applySuggestion);
+  });
+  return result;
+};
+
+/* Import review: marca visualmente quando a categoria veio do histórico */
+if(typeof renderInvoiceReview==='function'){
+  const _v132OldRenderInvoiceReview=renderInvoiceReview;
+  renderInvoiceReview=function(){
+    const result=_v132OldRenderInvoiceReview();
+    requestAnimationFrame(()=>{
+      (pendingInvoiceImport||[]).forEach((r,i)=>{
+        const hist=v132HistoricalCategory(r.description,{});
+        if(!hist) return;
+
+        const select=document.querySelector(`[name="import_category_${i}"]`) ||
+                     document.querySelector(`[data-import-index="${i}"] select`);
+        if(select){
+          if([...select.options].some(o=>o.value===hist.category)) select.value=hist.category;
+          if(!select.parentElement.querySelector('.import-history-badge')){
+            const badge=document.createElement('span');
+            badge.className='import-history-badge';
+            badge.textContent='↺ histórico';
+            select.parentElement.appendChild(badge);
+          }
+        }
+      });
+    });
+    return result;
+  };
+}
+</script>
+
 </body>
 </html>
