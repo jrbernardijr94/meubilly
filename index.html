@@ -5381,5 +5381,190 @@ openImportInvoice=function(){
 };
 </script>
 
+
+<style id="v131-invoice-manual-history">
+.invoice-detail-actions{
+  gap:8px!important;
+  flex-wrap:wrap!important;
+}
+.invoice-detail-actions .btn{
+  white-space:nowrap;
+}
+@media(max-width:760px){
+  .invoice-detail-actions{
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+  }
+  .invoice-detail-actions .btn{
+    width:100%!important;
+  }
+  .invoice-detail-actions .invoice-manual-btn{
+    grid-column:1/-1!important;
+  }
+}
+</style>
+
+<script id="v131-invoice-manual-history">
+(function(){
+  let billyHandlingPop=false;
+  let billyHistoryReady=false;
+
+  function billyHistoryPayload(){
+    return {
+      billy:true,
+      page:page||'dashboard',
+      month:month(),
+      card:selectedInvoiceCard||''
+    };
+  }
+
+  function billyApplyHistoryState(st){
+    if(!st || !st.billy) return false;
+    billyHandlingPop=true;
+
+    if(st.month){
+      currentMonth=st.month;
+      localStorage.setItem('fin.currentMonth',currentMonth);
+      localStorage.setItem('fin.month.v59',currentMonth);
+    }
+
+    if(st.card){
+      selectedInvoiceCard=st.card;
+      localStorage.setItem('fin.selectedCard',selectedInvoiceCard);
+    }else if(st.page!=='cardInvoice'){
+      selectedInvoiceCard='';
+    }
+
+    page=st.page||'dashboard';
+    localStorage.setItem('fin.page',page);
+    closeMobileMenu();
+    render();
+
+    billyHandlingPop=false;
+    return true;
+  }
+
+  function billyInitHistory(){
+    if(billyHistoryReady) return;
+    billyHistoryReady=true;
+    const payload=billyHistoryPayload();
+    history.replaceState(payload,'',location.href);
+  }
+
+  const previousSetPage=window.setPage || setPage;
+  window.setPage = setPage = function(p){
+    localStorage.setItem('fin.currentMonth',month());
+
+    if(billyHandlingPop){
+      return previousSetPage(p);
+    }
+
+    const beforePage=page;
+    const beforeCard=selectedInvoiceCard||'';
+    const result=previousSetPage(p);
+
+    billyInitHistory();
+
+    const after=billyHistoryPayload();
+    if(beforePage!==after.page || beforeCard!==after.card){
+      history.pushState(after,'',location.href);
+    }else{
+      history.replaceState(after,'',location.href);
+    }
+    return result;
+  };
+
+  const previousShowCardInvoices=window.showCardInvoices || showCardInvoices;
+  window.showCardInvoices = showCardInvoices = function(cardName){
+    if(billyHandlingPop) return previousShowCardInvoices(cardName);
+
+    const result=previousShowCardInvoices(cardName);
+    billyInitHistory();
+    history.pushState(billyHistoryPayload(),'',location.href);
+    return result;
+  };
+
+  window.billyInvoiceBack=function(){
+    if(history.state && history.state.billy){
+      history.back();
+    }else{
+      setPage('cards');
+    }
+  };
+
+  window.openManualCardEntryForInvoice=function(cardName,invoiceMonth){
+    openTx('card');
+    requestAnimationFrame(()=>{
+      const form=document.getElementById('modalForm');
+      if(!form) return;
+
+      const card=form.querySelector('[name="card"]');
+      const monthInput=form.querySelector('[name="invoiceMonth"]');
+
+      if(card) card.value=cardName||'';
+      if(monthInput) monthInput.value=invoiceMonth||month();
+    });
+  };
+
+  window.addEventListener('popstate',function(e){
+    if(e.state && e.state.billy){
+      billyApplyHistoryState(e.state);
+      return;
+    }
+
+    // Se o navegador tentar sair diretamente do BILLY, mantém o usuário na tela atual.
+    // Depois que houver navegação interna, o botão voltar percorre as páginas normalmente.
+    history.pushState(billyHistoryPayload(),'',location.href);
+  });
+
+  function patchInvoiceActions(){
+    const shell=document.querySelector('.invoice-detail-shell');
+    if(!shell) return;
+
+    const actions=shell.querySelector('.invoice-detail-actions');
+    const card=state.cards.find(c=>c.name===selectedInvoiceCard)||state.cards[0];
+    if(!actions||!card) return;
+
+    const back=actions.querySelector('button');
+    if(back){
+      back.setAttribute('onclick','billyInvoiceBack()');
+      back.textContent='← Cartões';
+    }
+
+    if(!actions.querySelector('.invoice-manual-btn')){
+      const btn=document.createElement('button');
+      btn.className='btn small primary invoice-manual-btn';
+      btn.type='button';
+      btn.textContent='+ Lançamento nesta fatura';
+      btn.onclick=()=>openManualCardEntryForInvoice(card.name,month());
+      actions.appendChild(btn);
+    }
+  }
+
+  const prevDrawInvoice=window.drawInvoice;
+  window.drawInvoice=drawInvoice=function(){
+    const result=prevDrawInvoice();
+    patchInvoiceActions();
+    return result;
+  };
+
+  // Remove o lançamento manual da capa dos cartões.
+  const prevRenderCards=window.renderCards;
+  window.renderCards=renderCards=function(){
+    const result=prevRenderCards();
+
+    document.querySelectorAll('#view .toolbar .btn').forEach(btn=>{
+      if((btn.textContent||'').trim().toLowerCase().includes('lançamento manual')){
+        btn.remove();
+      }
+    });
+
+    return result;
+  };
+
+  billyInitHistory();
+})();
+</script>
+
 </body>
 </html>
