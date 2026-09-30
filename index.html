@@ -6912,7 +6912,7 @@ body.light-theme .invoice-modern-row:hover{
         }else{
           btn.insertBefore(current,btn.firstChild);
         }
-      }else{
+      }else if(!current.querySelector('svg')){
         current.innerHTML=icons[key];
       }
 
@@ -6920,9 +6920,7 @@ body.light-theme .invoice-modern-row:hover{
     });
   };
 
-  const observer=new MutationObserver(()=>v135RefreshSidebarIcons());
-  const side=document.querySelector('.side');
-  if(side)observer.observe(side,{childList:true,subtree:true});
+  /* V139: removido MutationObserver recursivo que podia travar a interface após o login */
   v135RefreshSidebarIcons();
 
   /* Tabela corrigida: parcela como coluna própria */
