@@ -6180,5 +6180,400 @@ window.drawInvoice=function(){
 };
 </script>
 
+
+<style id="v134-invoice-responsive-polish">
+/* =========================
+   V134 - fatura mais compacta e responsiva
+   ========================= */
+
+/* Barra superior compacta */
+.invoice-compact-tools{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  margin:0 0 10px;
+}
+.invoice-compact-tools-left,
+.invoice-compact-tools-right{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+.invoice-filter-toggle{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:38px;
+  padding:0 12px;
+  border:1px solid var(--line);
+  border-radius:11px;
+  background:var(--panel2,#0b1220);
+  color:var(--text);
+  font-weight:900;
+  cursor:pointer;
+}
+.invoice-filter-toggle .filter-icon{
+  width:16px;height:16px;display:inline-block;position:relative;
+}
+.invoice-filter-toggle .filter-icon:before,
+.invoice-filter-toggle .filter-icon:after{
+  content:"";position:absolute;left:1px;right:1px;border-top:2px solid currentColor;
+}
+.invoice-filter-toggle .filter-icon:before{top:4px}
+.invoice-filter-toggle .filter-icon:after{top:10px;width:9px;right:auto}
+.invoice-filter-toggle.active{
+  color:#67e8f9;
+  border-color:rgba(34,211,238,.45);
+  background:rgba(14,165,233,.10);
+}
+.invoice-filter-dot{
+  display:none;
+  width:7px;height:7px;border-radius:999px;background:#22d3ee;
+}
+.invoice-filter-toggle.has-filter .invoice-filter-dot{display:inline-block}
+
+.invoice-filter-panel{
+  display:none;
+  margin:0 0 10px;
+}
+.invoice-filter-panel.open{display:block}
+
+/* Filtro em layout mais contido */
+.invoice-filter-bar{
+  grid-template-columns:minmax(220px,1.5fr) minmax(150px,.8fr) minmax(130px,.7fr) minmax(130px,.7fr) minmax(165px,.85fr) auto!important;
+  align-items:end!important;
+  padding:10px!important;
+  gap:8px!important;
+  margin:0!important;
+}
+.invoice-filter-actions{
+  grid-column:auto!important;
+  align-items:end!important;
+}
+.invoice-filter-actions .btn{
+  min-width:92px;
+  padding-inline:10px!important;
+}
+
+/* Tabela: parcela junto da descrição */
+.invoice-modern-head,
+.invoice-modern-row{
+  grid-template-columns:32px 78px minmax(260px,1.9fr) minmax(145px,1fr) 105px 108px 40px!important;
+  gap:8px!important;
+}
+.invoice-modern-head .col-installment{display:none!important}
+.invoice-description-inline{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.invoice-description-inline strong{
+  min-width:0;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.invoice-inline-installment{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  padding:3px 7px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+  color:#cbd5e1;
+  background:rgba(148,163,184,.10);
+  border:1px solid rgba(148,163,184,.16);
+}
+.invoice-modern-row .invoice-parcel{display:none!important}
+
+/* Responsividade desktop intermediário */
+@media (max-width:1260px) and (min-width:761px){
+  .invoice-detail-summary{
+    grid-template-columns:minmax(230px,1.3fr) repeat(3,minmax(145px,.75fr))!important;
+  }
+  .invoice-detail-actions{
+    grid-column:1/-1!important;
+    justify-content:flex-end!important;
+  }
+  .invoice-filter-bar{
+    grid-template-columns:minmax(220px,1.4fr) minmax(150px,.8fr) minmax(130px,.7fr) minmax(130px,.7fr)!important;
+  }
+  .invoice-filter-sort{grid-column:1/3!important}
+  .invoice-filter-actions{grid-column:3/5!important;justify-content:flex-end!important}
+  .invoice-modern-head,
+  .invoice-modern-row{
+    grid-template-columns:30px 72px minmax(210px,1.7fr) minmax(130px,.9fr) 96px 100px 38px!important;
+  }
+}
+
+/* Sidebar estável em larguras menores de desktop */
+@media (max-width:1100px) and (min-width:761px){
+  .side{
+    width:190px!important;
+    min-width:190px!important;
+  }
+  .app{
+    grid-template-columns:190px minmax(0,1fr)!important;
+  }
+  .side .nav button{
+    min-width:0!important;
+    overflow:hidden!important;
+  }
+  .side .nav button .nav-label,
+  .side .nav button span:last-child{
+    overflow:hidden!important;
+    text-overflow:ellipsis!important;
+    white-space:nowrap!important;
+  }
+  .side .nav-icon{
+    flex:0 0 34px!important;
+    width:34px!important;
+    height:34px!important;
+    min-width:34px!important;
+  }
+}
+
+/* Mobile */
+@media(max-width:760px){
+  .invoice-compact-tools{
+    align-items:stretch;
+  }
+  .invoice-compact-tools-left,
+  .invoice-compact-tools-right{
+    width:100%;
+  }
+  .invoice-filter-toggle{
+    width:100%;
+    justify-content:center;
+  }
+
+  .invoice-filter-bar{
+    grid-template-columns:1fr 1fr!important;
+  }
+  .invoice-filter-search,
+  .invoice-filter-category,
+  .invoice-filter-sort,
+  .invoice-filter-actions{
+    grid-column:1/-1!important;
+  }
+  .invoice-filter-actions .btn{width:100%}
+
+  .invoice-description-inline{
+    gap:6px;
+  }
+  .invoice-inline-installment{
+    font-size:9px;
+    padding:2px 6px;
+  }
+}
+
+/* Tema claro */
+body.light-theme .invoice-filter-toggle{
+  background:#fff;
+  color:#142033;
+  border-color:#cbddea;
+}
+body.light-theme .invoice-filter-toggle.active{
+  color:#087f8c;
+  background:#ecfeff;
+  border-color:#8ddde7;
+}
+body.light-theme .invoice-inline-installment{
+  color:#496176;
+  background:#f4f8fb;
+  border-color:#d8e4ee;
+}
+</style>
+
+<script id="v134-invoice-responsive-js">
+window.billyInvoiceFilterOpen = false;
+
+function v134HasActiveFilter(){
+  const f=window.billyInvoiceFilter||{};
+  return !!(f.search||f.category||f.from||f.to||(f.sort&&f.sort!=='date_asc'));
+}
+function v134ToggleFilters(){
+  window.billyInvoiceFilterOpen=!window.billyInvoiceFilterOpen;
+  const panel=document.getElementById('invoiceFilterPanel');
+  const btn=document.getElementById('invoiceFilterToggle');
+  if(panel) panel.classList.toggle('open',window.billyInvoiceFilterOpen);
+  if(btn) btn.classList.toggle('active',window.billyInvoiceFilterOpen);
+}
+function v134FilterButtonHtml(){
+  const active=v134HasActiveFilter();
+  return `<button id="invoiceFilterToggle" class="invoice-filter-toggle ${window.billyInvoiceFilterOpen?'active':''} ${active?'has-filter':''}" type="button" onclick="v134ToggleFilters()">
+    <span class="filter-icon" aria-hidden="true"></span>
+    <span>Filtros</span>
+    <span class="invoice-filter-dot" aria-hidden="true"></span>
+  </button>`;
+}
+
+/* Substitui a tabela para juntar parcela à descrição */
+function v134InvoiceTable(rows){
+  if(!rows.length) return `<div class="invoice-empty-filter">Nenhum lançamento encontrado com estes filtros.</div>`;
+
+  return `<div class="invoice-modern-wrap">
+    <div class="invoice-modern-head">
+      <span></span>
+      <span class="${v133HeaderClass('date')}" onclick="v133ToggleInvoiceSort('date')">Data ${v133SortIcon('date')}</span>
+      <span class="${v133HeaderClass('description')}" onclick="v133ToggleInvoiceSort('description')">Descrição ${v133SortIcon('description')}</span>
+      <span class="${v133HeaderClass('category')}" onclick="v133ToggleInvoiceSort('category')">Categoria ${v133SortIcon('category')}</span>
+      <span class="${v133HeaderClass('status')}" onclick="v133ToggleInvoiceSort('status')">Status ${v133SortIcon('status')}</span>
+      <span class="${v133HeaderClass('amount')}" onclick="v133ToggleInvoiceSort('amount')" style="justify-content:flex-end">Valor ${v133SortIcon('amount')}</span>
+      <span></span>
+    </div>
+    ${rows.map(r=>{
+      const sid=String(r.id);
+      const checked=window.billySelectedInvoiceTxIds.has(sid);
+      const inst=(r.installment||'').trim();
+      const status=(r.status==='paid')?'Pago':'Pendente';
+      return `<div class="invoice-modern-row ${checked?'is-selected':''}" data-invoice-tx-id="${v133EscAttr(sid)}">
+        <label class="invoice-row-check">
+          <input type="checkbox" data-tx-id="${v133EscAttr(sid)}" ${checked?'checked':''}
+            onchange="toggleBillyInvoiceTxSelection('${v133EscAttr(sid)}',this.checked)"
+            aria-label="Selecionar ${v133EscAttr(r.description)}">
+        </label>
+        <div class="invoice-date">${compactDate(r.date)}</div>
+        <div class="invoice-cell-main">
+          <div class="invoice-description-inline">
+            <strong title="${v133EscAttr(r.description)}">${esc(r.description)}</strong>
+            ${inst?`<span class="invoice-inline-installment">${esc(inst)}</span>`:''}
+          </div>
+          <small>${esc(r.card||'')}</small>
+        </div>
+        <div class="invoice-cat">${iconInline(catEmoji(r.category))} <span>${esc(r.category||'Sem categoria')}</span></div>
+        <div class="invoice-status ${r.status==='paid'?'paid':''}">${status}</div>
+        <div class="invoice-value">${money(r.amount)}</div>
+        <div class="invoice-modern-menu">${txMenuHtml(r.id)}</div>
+        <div class="invoice-mobile-meta" style="display:none">
+          <span class="invoice-date">${compactDate(r.date)}</span>
+          <span class="invoice-cat">${iconInline(catEmoji(r.category))} ${esc(r.category||'Sem categoria')}</span>
+          ${inst?`<span class="invoice-parcel">${esc(inst)}</span>`:''}
+          <span class="invoice-status ${r.status==='paid'?'paid':''}">${status}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+const _v134DrawInvoice = window.drawInvoice;
+window.drawInvoice=function(){
+  const card=state.cards.find(c=>c.name===selectedInvoiceCard)||state.cards[0];
+  if(!card){
+    $('#view').innerHTML='<div class="panel"><div class="panel-body"><div class="empty">Nenhum cartão cadastrado.</div></div></div>';
+    return;
+  }
+  selectedInvoiceCard=card.name;
+  localStorage.setItem('fin.selectedCard',card.name);
+
+  const m=month();
+  const allRows=sortedTxRows(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.invoiceMonth===m));
+  const visibleRows=v133InvoiceFilteredRows(allRows);
+
+  const validIds=new Set(allRows.map(r=>String(r.id)));
+  window.billySelectedInvoiceTxIds=new Set([...window.billySelectedInvoiceTxIds].filter(id=>validIds.has(id)));
+
+  const total=sum(allRows,'amount');
+  const paid=invoicePaid(allRows);
+  const pending=sum(allRows.filter(r=>r.status!=='paid'),'amount');
+  const limit=Number(card.limit||0);
+  const available=limit-sum(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.status!=='paid'),'amount');
+
+  const logoSrc=logoForCard(card.name);
+  const logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(card.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(card.name||'??').slice(0,2).toUpperCase())}</div>`;
+  const toggle=allRows.length?`<button class="btn small ${paid?'yellow':'green'}" onclick="setInvoiceStatus('${String(card.name).replace(/'/g,"\\'")}','${m}','${paid?'pending':'paid'}')">${paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+
+  const cats=[...new Set(allRows.map(r=>r.category).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
+  const catOpts=`<option value="">Todas</option>${cats.map(c=>`<option value="${esc(c)}" ${window.billyInvoiceFilter.category===c?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('')}`;
+
+  const selectionToolbar=allRows.length?`
+    <div class="invoice-selection-toolbar">
+      <div class="invoice-selection-left">
+        <label class="invoice-select-all">
+          <input id="invoiceSelectAll" type="checkbox" onchange="toggleAllBillyInvoiceRows(this.checked)">
+          Selecionar todos
+        </label>
+        <span id="invoiceSelectionInfo" class="invoice-selection-info">Marque os lançamentos para conferir ou excluir</span>
+        <span id="invoiceSelectionTotal" class="invoice-selection-total">Total selecionado: R$ 0,00</span>
+      </div>
+      <div class="invoice-selection-actions">
+        <button id="invoiceDeleteSelected" class="btn small red" disabled onclick="deleteBillySelectedInvoiceTransactions()">Excluir selecionados</button>
+      </div>
+    </div>`:'';
+
+  const filterPanel=`
+    <div id="invoiceFilterPanel" class="invoice-filter-panel ${window.billyInvoiceFilterOpen?'open':''}">
+      <div class="invoice-filter-bar">
+        <div class="field invoice-filter-search">
+          <label>Buscar lançamento</label>
+          <input value="${v133EscAttr(window.billyInvoiceFilter.search||'')}" placeholder="Ex.: mercado, hotel, farmácia..."
+            oninput="v133SetInvoiceFilter('search',this.value)">
+        </div>
+        <div class="field invoice-filter-category">
+          <label>Categoria</label>
+          <select onchange="v133SetInvoiceFilter('category',this.value)">${catOpts}</select>
+        </div>
+        <div class="field">
+          <label>De</label>
+          <input type="date" value="${v133EscAttr(window.billyInvoiceFilter.from||'')}" onchange="v133SetInvoiceFilter('from',this.value)">
+        </div>
+        <div class="field">
+          <label>Até</label>
+          <input type="date" value="${v133EscAttr(window.billyInvoiceFilter.to||'')}" onchange="v133SetInvoiceFilter('to',this.value)">
+        </div>
+        <div class="field invoice-filter-sort">
+          <label>Ordenar</label>
+          <select onchange="v133SetInvoiceFilter('sort',this.value)">
+            <option value="date_asc" ${window.billyInvoiceFilter.sort==='date_asc'?'selected':''}>Data: mais antiga</option>
+            <option value="date_desc" ${window.billyInvoiceFilter.sort==='date_desc'?'selected':''}>Data: mais recente</option>
+            <option value="description_asc" ${window.billyInvoiceFilter.sort==='description_asc'?'selected':''}>Descrição: A–Z</option>
+            <option value="category_asc" ${window.billyInvoiceFilter.sort==='category_asc'?'selected':''}>Categoria: A–Z</option>
+            <option value="amount_desc" ${window.billyInvoiceFilter.sort==='amount_desc'?'selected':''}>Maior valor</option>
+            <option value="amount_asc" ${window.billyInvoiceFilter.sort==='amount_asc'?'selected':''}>Menor valor</option>
+          </select>
+        </div>
+        <div class="invoice-filter-actions">
+          <button class="btn ghost small" type="button" onclick="v133ResetInvoiceFilters()">Limpar</button>
+        </div>
+      </div>
+    </div>`;
+
+  $('#view').innerHTML=`<div class="invoice-detail-shell">
+    <div class="invoice-detail-summary">
+      <div class="invoice-detail-card invoice-detail-ident">${logo}<div><div class="k">Cartão</div><div class="v">${esc(card.name)}</div><small class="muted">Fecha dia ${card.closingDay} · vence dia ${card.dueDay}</small></div></div>
+      <div class="invoice-detail-card"><div class="k">Fatura</div><div class="v ${paid?'positive':'negative'}">${money(total)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Pendente</div><div class="v ${pending?'negative':'positive'}">${money(pending)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Disponível</div><div class="v ${available<0?'negative':'positive'}">${money(available)}</div></div>
+      <div class="invoice-detail-actions">
+        <button class="btn small ghost" onclick="billyInvoiceBack()">← Cartões</button>
+        ${toggle}
+        <button class="btn small primary invoice-manual-btn" onclick="openManualCardEntryForInvoice('${String(card.name).replace(/'/g,"\\'")}','${m}')">+ Lançamento nesta fatura</button>
+      </div>
+    </div>
+
+    <div class="invoice-compact-tools">
+      <div class="invoice-compact-tools-left">
+        ${v134FilterButtonHtml()}
+        <span class="invoice-results-meta">${visibleRows.length} de ${allRows.length} lançamentos</span>
+      </div>
+      <div class="invoice-compact-tools-right">
+        <span class="invoice-results-meta">Total exibido: <strong>${money(sum(visibleRows,'amount'))}</strong></span>
+      </div>
+    </div>
+
+    ${filterPanel}
+    ${selectionToolbar}
+    ${v134InvoiceTable(visibleRows)}
+  </div>`;
+
+  updateBillyInvoiceSelectionUI();
+};
+</script>
+
 </body>
 </html>
