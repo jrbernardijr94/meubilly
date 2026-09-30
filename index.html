@@ -5779,5 +5779,406 @@ if(typeof renderInvoiceReview==='function'){
 }
 </script>
 
+
+<style id="v133-invoice-modern-table">
+.invoice-filter-bar{
+  display:grid;
+  grid-template-columns:minmax(220px,1.6fr) minmax(160px,.9fr) minmax(145px,.8fr) minmax(145px,.8fr) minmax(170px,.9fr);
+  gap:10px;
+  margin:0 0 12px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:16px;
+  background:var(--panel2,#0b1220);
+}
+.invoice-filter-bar .field{margin:0}
+.invoice-filter-bar label{
+  display:block;font-size:10px;font-weight:900;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:5px;
+}
+.invoice-filter-bar input,
+.invoice-filter-bar select{
+  width:100%;height:40px;border-radius:11px;
+  border:1px solid var(--line);
+  background:var(--input-bg,#0b1322);
+  color:var(--text);
+  padding:0 11px;
+  font:inherit;
+}
+.invoice-filter-search{position:relative}
+.invoice-filter-search input{padding-left:34px}
+.invoice-filter-search:before{
+  content:"⌕";position:absolute;left:11px;bottom:8px;color:var(--muted);font-size:18px
+}
+.invoice-filter-actions{
+  display:flex;align-items:end;gap:8px;
+}
+.invoice-filter-actions .btn{height:40px}
+
+.invoice-modern-wrap{
+  border:1px solid var(--line);
+  border-radius:16px;
+  overflow:hidden;
+  background:var(--panel,#0b1423);
+}
+.invoice-modern-head,
+.invoice-modern-row{
+  display:grid;
+  grid-template-columns:34px 92px minmax(220px,1.7fr) minmax(150px,1fr) 90px 110px 112px 42px;
+  align-items:center;
+  gap:10px;
+}
+.invoice-modern-head{
+  padding:10px 12px;
+  background:rgba(148,163,184,.06);
+  border-bottom:1px solid var(--line);
+  color:var(--muted);
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+.invoice-sortable{
+  cursor:pointer;user-select:none;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.invoice-sortable:hover{color:var(--text)}
+.invoice-sortable.active{color:#38bdf8}
+.invoice-modern-row{
+  position:relative;
+  padding:11px 12px;
+  border-bottom:1px solid var(--line);
+  transition:background .15s ease,border-color .15s ease;
+}
+.invoice-modern-row:last-child{border-bottom:0}
+.invoice-modern-row:hover{background:rgba(148,163,184,.045)}
+.invoice-modern-row.is-selected{
+  background:linear-gradient(135deg,rgba(14,165,233,.13),rgba(20,184,166,.10))!important;
+  box-shadow:inset 3px 0 0 #22d3ee;
+}
+.invoice-cell-main{min-width:0}
+.invoice-cell-main strong{
+  display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-size:13px;
+}
+.invoice-cell-main small{display:block;color:var(--muted);font-size:10px;margin-top:2px}
+.invoice-cat{
+  min-width:0;display:flex;align-items:center;gap:6px;font-size:12px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis
+}
+.invoice-parcel{font-weight:800;font-size:12px;color:var(--muted)}
+.invoice-value{text-align:right;font-size:13px;font-weight:900;color:#fb7185}
+.invoice-date{font-size:12px;font-weight:800}
+.invoice-status{
+  font-size:10px;font-weight:900;text-align:center;
+  padding:5px 7px;border-radius:999px;
+  background:rgba(245,158,11,.10);color:#fbbf24;border:1px solid rgba(245,158,11,.22)
+}
+.invoice-status.paid{
+  background:rgba(34,197,94,.10);color:#4ade80;border-color:rgba(34,197,94,.22)
+}
+.invoice-row-check{display:grid;place-items:center}
+.invoice-row-check input{width:16px;height:16px;accent-color:#14b8a6;cursor:pointer}
+.invoice-empty-filter{
+  padding:32px;text-align:center;color:var(--muted)
+}
+.invoice-results-meta{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;margin:0 0 8px;color:var(--muted);font-size:11px
+}
+
+body.light-theme .invoice-filter-bar,
+body.light-theme .invoice-modern-wrap{background:#fff}
+body.light-theme .invoice-filter-bar input,
+body.light-theme .invoice-filter-bar select{background:#fff;color:#142033;border-color:#cdd9e5}
+body.light-theme .invoice-modern-head{background:#f5f8fb}
+body.light-theme .invoice-modern-row.is-selected{
+  background:linear-gradient(135deg,#eaf9ff,#ecfff8)!important
+}
+
+@media(max-width:980px){
+  .invoice-filter-bar{
+    grid-template-columns:1fr 1fr;
+  }
+  .invoice-filter-search{grid-column:1/-1}
+  .invoice-filter-actions{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .invoice-filter-bar{
+    grid-template-columns:1fr 1fr;
+    padding:10px;
+    border-radius:14px;
+    gap:8px;
+  }
+  .invoice-filter-search,
+  .invoice-filter-category,
+  .invoice-filter-sort,
+  .invoice-filter-actions{grid-column:1/-1}
+  .invoice-filter-bar input,
+  .invoice-filter-bar select{height:42px}
+  .invoice-modern-head{display:none}
+  .invoice-modern-wrap{
+    background:transparent;
+    border:0;
+    overflow:visible;
+  }
+  .invoice-modern-row{
+    grid-template-columns:24px minmax(0,1fr) auto;
+    grid-template-areas:
+      "check main value"
+      "check meta meta";
+    gap:5px 9px;
+    padding:11px 10px;
+    margin-bottom:8px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:var(--panel,#0b1423);
+  }
+  .invoice-modern-row:last-child{border-bottom:1px solid var(--line)}
+  .invoice-row-check{grid-area:check;align-self:start;padding-top:2px}
+  .invoice-cell-main{grid-area:main}
+  .invoice-value{grid-area:value;align-self:start;font-size:13px}
+  .invoice-mobile-meta{
+    grid-area:meta;
+    display:flex!important;
+    gap:6px 10px;flex-wrap:wrap;align-items:center
+  }
+  .invoice-date,
+  .invoice-cat,
+  .invoice-parcel,
+  .invoice-status{
+    display:none!important;
+  }
+  .invoice-mobile-meta .invoice-date,
+  .invoice-mobile-meta .invoice-cat,
+  .invoice-mobile-meta .invoice-parcel,
+  .invoice-mobile-meta .invoice-status{
+    display:inline-flex!important;
+  }
+  .invoice-modern-menu{
+    grid-area:value;
+    justify-self:end;
+    margin-top:28px;
+  }
+  .invoice-cell-main strong{font-size:13px}
+  .invoice-cell-main small{font-size:10px}
+  .invoice-cat,.invoice-parcel,.invoice-date{font-size:10px}
+  .invoice-status{font-size:9px;padding:3px 6px}
+  .invoice-results-meta{padding:0 2px}
+}
+</style>
+
+<script id="v133-invoice-modern-filter">
+window.billyInvoiceFilter = window.billyInvoiceFilter || {
+  search:'',category:'',from:'',to:'',sort:'date_asc'
+};
+
+function v133EscAttr(s){
+  return String(s??'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function v133InvoiceFilteredRows(rows){
+  const f=window.billyInvoiceFilter||{};
+  let out=[...rows];
+
+  if(f.search){
+    const q=v132NormText? v132NormText(f.search):String(f.search).toLowerCase();
+    out=out.filter(r=>{
+      const hay=(v132NormText? v132NormText(`${r.description||''} ${r.category||''} ${r.installment||''}`):`${r.description||''} ${r.category||''}`.toLowerCase());
+      return hay.includes(q);
+    });
+  }
+  if(f.category) out=out.filter(r=>String(r.category||'')===String(f.category));
+  if(f.from) out=out.filter(r=>String(r.date||'')>=String(f.from));
+  if(f.to) out=out.filter(r=>String(r.date||'')<=String(f.to));
+
+  const [key,dir]=(f.sort||'date_asc').split('_');
+  const mult=dir==='desc'?-1:1;
+  out.sort((a,b)=>{
+    if(key==='date') return String(a.date||'').localeCompare(String(b.date||''))*mult;
+    if(key==='description') return String(a.description||'').localeCompare(String(b.description||''),'pt-BR',{sensitivity:'base'})*mult;
+    if(key==='category') return String(a.category||'').localeCompare(String(b.category||''),'pt-BR',{sensitivity:'base'})*mult;
+    if(key==='installment'){
+      const ai=v129InstallmentInfo? v129InstallmentInfo(a):{index:0};
+      const bi=v129InstallmentInfo? v129InstallmentInfo(b):{index:0};
+      return (ai.index-bi.index)*mult;
+    }
+    if(key==='amount') return (Number(a.amount||0)-Number(b.amount||0))*mult;
+    if(key==='status') return String(a.status||'').localeCompare(String(b.status||''))*mult;
+    return 0;
+  });
+  return out;
+}
+function v133SetInvoiceFilter(key,val){
+  window.billyInvoiceFilter[key]=val;
+  drawInvoice();
+}
+function v133ToggleInvoiceSort(key){
+  const cur=window.billyInvoiceFilter.sort||'date_asc';
+  const [k,d]=cur.split('_');
+  window.billyInvoiceFilter.sort = (k===key && d==='asc') ? `${key}_desc` : `${key}_asc`;
+  drawInvoice();
+}
+function v133ResetInvoiceFilters(){
+  window.billyInvoiceFilter={search:'',category:'',from:'',to:'',sort:'date_asc'};
+  drawInvoice();
+}
+function v133SortIcon(key){
+  const cur=window.billyInvoiceFilter.sort||'';
+  if(!cur.startsWith(key+'_')) return '↕';
+  return cur.endsWith('_asc')?'↑':'↓';
+}
+function v133HeaderClass(key){
+  return (window.billyInvoiceFilter.sort||'').startsWith(key+'_')?'invoice-sortable active':'invoice-sortable';
+}
+function v133InvoiceTable(rows){
+  if(!rows.length) return `<div class="invoice-empty-filter">Nenhum lançamento encontrado com estes filtros.</div>`;
+  return `<div class="invoice-modern-wrap">
+    <div class="invoice-modern-head">
+      <span></span>
+      <span class="${v133HeaderClass('date')}" onclick="v133ToggleInvoiceSort('date')">Data ${v133SortIcon('date')}</span>
+      <span class="${v133HeaderClass('description')}" onclick="v133ToggleInvoiceSort('description')">Descrição ${v133SortIcon('description')}</span>
+      <span class="${v133HeaderClass('category')}" onclick="v133ToggleInvoiceSort('category')">Categoria ${v133SortIcon('category')}</span>
+      <span class="${v133HeaderClass('installment')}" onclick="v133ToggleInvoiceSort('installment')">Parcela ${v133SortIcon('installment')}</span>
+      <span class="${v133HeaderClass('status')}" onclick="v133ToggleInvoiceSort('status')">Status ${v133SortIcon('status')}</span>
+      <span class="${v133HeaderClass('amount')}" onclick="v133ToggleInvoiceSort('amount')" style="justify-content:flex-end">Valor ${v133SortIcon('amount')}</span>
+      <span></span>
+    </div>
+    ${rows.map(r=>{
+      const sid=String(r.id);
+      const checked=window.billySelectedInvoiceTxIds.has(sid);
+      const inst=(r.installment||'').trim() || '—';
+      const status=(r.status==='paid')?'Pago':'Pendente';
+      return `<div class="invoice-modern-row ${checked?'is-selected':''}" data-invoice-tx-id="${v133EscAttr(sid)}">
+        <label class="invoice-row-check">
+          <input type="checkbox" data-tx-id="${v133EscAttr(sid)}" ${checked?'checked':''}
+            onchange="toggleBillyInvoiceTxSelection('${v133EscAttr(sid)}',this.checked)"
+            aria-label="Selecionar ${v133EscAttr(r.description)}">
+        </label>
+        <div class="invoice-date">${compactDate(r.date)}</div>
+        <div class="invoice-cell-main">
+          <strong title="${v133EscAttr(r.description)}">${esc(r.description)}</strong>
+          <small>${esc(r.card||'')}</small>
+        </div>
+        <div class="invoice-cat">${iconInline(catEmoji(r.category))} <span>${esc(r.category||'Sem categoria')}</span></div>
+        <div class="invoice-parcel">${esc(inst)}</div>
+        <div class="invoice-status ${r.status==='paid'?'paid':''}">${status}</div>
+        <div class="invoice-value">${money(r.amount)}</div>
+        <div class="invoice-modern-menu">${txMenuHtml(r.id)}</div>
+        <div class="invoice-mobile-meta" style="display:none">
+          <span class="invoice-date">${compactDate(r.date)}</span>
+          <span class="invoice-cat">${iconInline(catEmoji(r.category))} ${esc(r.category||'Sem categoria')}</span>
+          <span class="invoice-parcel">${esc(inst)}</span>
+          <span class="invoice-status ${r.status==='paid'?'paid':''}">${status}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+window.drawInvoice=function(){
+  const card=state.cards.find(c=>c.name===selectedInvoiceCard)||state.cards[0];
+  if(!card){
+    $('#view').innerHTML='<div class="panel"><div class="panel-body"><div class="empty">Nenhum cartão cadastrado.</div></div></div>';
+    return;
+  }
+  selectedInvoiceCard=card.name;
+  localStorage.setItem('fin.selectedCard',card.name);
+
+  const m=month();
+  const allRows=sortedTxRows(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.invoiceMonth===m));
+  const visibleRows=v133InvoiceFilteredRows(allRows);
+
+  const validIds=new Set(allRows.map(r=>String(r.id)));
+  window.billySelectedInvoiceTxIds=new Set([...window.billySelectedInvoiceTxIds].filter(id=>validIds.has(id)));
+
+  const total=sum(allRows,'amount');
+  const paid=invoicePaid(allRows);
+  const pending=sum(allRows.filter(r=>r.status!=='paid'),'amount');
+  const limit=Number(card.limit||0);
+  const available=limit-sum(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.status!=='paid'),'amount');
+
+  const logoSrc=logoForCard(card.name);
+  const logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(card.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(card.name||'??').slice(0,2).toUpperCase())}</div>`;
+  const toggle=allRows.length?`<button class="btn small ${paid?'yellow':'green'}" onclick="setInvoiceStatus('${String(card.name).replace(/'/g,"\\'")}','${m}','${paid?'pending':'paid'}')">${paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+
+  const cats=[...new Set(allRows.map(r=>r.category).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'pt-BR',{sensitivity:'base'}));
+  const catOpts=`<option value="">Todas</option>${cats.map(c=>`<option value="${esc(c)}" ${window.billyInvoiceFilter.category===c?'selected':''}>${iconText(catEmoji(c))} ${esc(c)}</option>`).join('')}`;
+
+  const selectionToolbar=allRows.length?`
+    <div class="invoice-selection-toolbar">
+      <div class="invoice-selection-left">
+        <label class="invoice-select-all">
+          <input id="invoiceSelectAll" type="checkbox" onchange="toggleAllBillyInvoiceRows(this.checked)">
+          Selecionar todos
+        </label>
+        <span id="invoiceSelectionInfo" class="invoice-selection-info">Marque os lançamentos para conferir ou excluir</span>
+        <span id="invoiceSelectionTotal" class="invoice-selection-total">Total selecionado: R$ 0,00</span>
+      </div>
+      <div class="invoice-selection-actions">
+        <button id="invoiceDeleteSelected" class="btn small red" disabled onclick="deleteBillySelectedInvoiceTransactions()">Excluir selecionados</button>
+      </div>
+    </div>`:'';
+
+  const filterBar=`
+    <div class="invoice-filter-bar">
+      <div class="field invoice-filter-search">
+        <label>Buscar lançamento</label>
+        <input value="${v133EscAttr(window.billyInvoiceFilter.search||'')}" placeholder="Ex.: mercado, hotel, farmácia..."
+          oninput="v133SetInvoiceFilter('search',this.value)">
+      </div>
+      <div class="field invoice-filter-category">
+        <label>Categoria</label>
+        <select onchange="v133SetInvoiceFilter('category',this.value)">${catOpts}</select>
+      </div>
+      <div class="field">
+        <label>De</label>
+        <input type="date" value="${v133EscAttr(window.billyInvoiceFilter.from||'')}" onchange="v133SetInvoiceFilter('from',this.value)">
+      </div>
+      <div class="field">
+        <label>Até</label>
+        <input type="date" value="${v133EscAttr(window.billyInvoiceFilter.to||'')}" onchange="v133SetInvoiceFilter('to',this.value)">
+      </div>
+      <div class="field invoice-filter-sort">
+        <label>Ordenar</label>
+        <select onchange="v133SetInvoiceFilter('sort',this.value)">
+          <option value="date_asc" ${window.billyInvoiceFilter.sort==='date_asc'?'selected':''}>Data: mais antiga</option>
+          <option value="date_desc" ${window.billyInvoiceFilter.sort==='date_desc'?'selected':''}>Data: mais recente</option>
+          <option value="description_asc" ${window.billyInvoiceFilter.sort==='description_asc'?'selected':''}>Descrição: A–Z</option>
+          <option value="category_asc" ${window.billyInvoiceFilter.sort==='category_asc'?'selected':''}>Categoria: A–Z</option>
+          <option value="amount_desc" ${window.billyInvoiceFilter.sort==='amount_desc'?'selected':''}>Maior valor</option>
+          <option value="amount_asc" ${window.billyInvoiceFilter.sort==='amount_asc'?'selected':''}>Menor valor</option>
+        </select>
+      </div>
+      <div class="invoice-filter-actions">
+        <button class="btn ghost small" type="button" onclick="v133ResetInvoiceFilters()">Limpar filtros</button>
+      </div>
+    </div>`;
+
+  $('#view').innerHTML=`<div class="invoice-detail-shell">
+    <div class="invoice-detail-summary">
+      <div class="invoice-detail-card invoice-detail-ident">${logo}<div><div class="k">Cartão</div><div class="v">${esc(card.name)}</div><small class="muted">Fecha dia ${card.closingDay} · vence dia ${card.dueDay}</small></div></div>
+      <div class="invoice-detail-card"><div class="k">Fatura</div><div class="v ${paid?'positive':'negative'}">${money(total)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Pendente</div><div class="v ${pending?'negative':'positive'}">${money(pending)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Disponível</div><div class="v ${available<0?'negative':'positive'}">${money(available)}</div></div>
+      <div class="invoice-detail-actions">
+        <button class="btn small ghost" onclick="billyInvoiceBack()">← Cartões</button>
+        ${toggle}
+        <button class="btn small primary invoice-manual-btn" onclick="openManualCardEntryForInvoice('${String(card.name).replace(/'/g,"\\'")}','${m}')">+ Lançamento nesta fatura</button>
+      </div>
+    </div>
+
+    ${filterBar}
+    <div class="invoice-results-meta">
+      <span>${visibleRows.length} de ${allRows.length} lançamento${allRows.length===1?'':'s'}</span>
+      <span>Total exibido: <strong>${money(sum(visibleRows,'amount'))}</strong></span>
+    </div>
+    ${selectionToolbar}
+    ${v133InvoiceTable(visibleRows)}
+  </div>`;
+
+  updateBillyInvoiceSelectionUI();
+};
+</script>
+
 </body>
 </html>
