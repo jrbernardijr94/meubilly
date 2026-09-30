@@ -4664,5 +4664,224 @@ document.addEventListener('visibilitychange',()=>{
 window.addEventListener('beforeunload',()=>localStorage.setItem('fin.currentMonth',month()));
 </script>
 
+
+<style id="v128-invoice-selection">
+/* V128 - seleção múltipla dentro da fatura */
+.card-bulk-check,.cards-bulk-actions:first-child{display:none!important}
+
+.invoice-selection-toolbar{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;margin:0 0 12px;padding:10px 12px;
+  border:1px solid var(--line);border-radius:14px;background:var(--panel2,#0b1220)
+}
+.invoice-selection-left,.invoice-selection-actions{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap
+}
+.invoice-selection-info{font-size:12px;color:var(--muted);font-weight:800}
+.invoice-select-all{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:12px;font-weight:900;color:var(--text)
+}
+.invoice-select-all input,.invoice-row-check input{
+  width:16px;height:16px;margin:0;accent-color:#14b8a6;cursor:pointer
+}
+.invoice-compact-item{
+  grid-template-columns:28px 76px minmax(0,1fr) auto!important;
+  transition:background .16s ease,border-color .16s ease,box-shadow .16s ease,transform .16s ease
+}
+.invoice-row-check{
+  display:grid;place-items:center;align-self:stretch
+}
+.invoice-compact-item.is-selected{
+  background:linear-gradient(135deg,rgba(14,165,233,.14),rgba(20,184,166,.12))!important;
+  border-color:rgba(34,211,238,.7)!important;
+  box-shadow:0 0 0 1px rgba(34,211,238,.16) inset,0 8px 24px rgba(8,145,178,.10)
+}
+.invoice-compact-item.is-selected .invoice-compact-value{
+  color:#67e8f9!important
+}
+body.light-theme .invoice-selection-toolbar{
+  background:#fff!important;border-color:#cbddea!important
+}
+body.light-theme .invoice-compact-item.is-selected{
+  background:linear-gradient(135deg,#e6f8ff,#e9fff8)!important;
+  border-color:#22b8cf!important
+}
+body.light-theme .invoice-compact-item.is-selected .invoice-compact-value{
+  color:#087f8c!important
+}
+@media(max-width:760px){
+  .invoice-compact-item{
+    grid-template-columns:24px 52px minmax(0,1fr) auto!important;
+    gap:7px!important
+  }
+  .invoice-compact-date{font-size:11px!important}
+  .invoice-compact-side{grid-column:4!important}
+  .invoice-selection-toolbar{padding:9px 10px}
+  .invoice-selection-actions{width:100%}
+  .invoice-selection-actions .btn{flex:1}
+}
+</style>
+
+<script id="v128-invoice-selection-functions">
+window.billySelectedInvoiceTxIds = new Set();
+
+window.toggleBillyInvoiceTxSelection=function(id,checked){
+  const sid=String(id);
+  if(checked) window.billySelectedInvoiceTxIds.add(sid);
+  else window.billySelectedInvoiceTxIds.delete(sid);
+  const row=document.querySelector(`[data-invoice-tx-id="${CSS.escape(sid)}"]`);
+  if(row) row.classList.toggle('is-selected',checked);
+  updateBillyInvoiceSelectionUI();
+};
+
+window.toggleAllBillyInvoiceRows=function(checked){
+  document.querySelectorAll('.invoice-row-check input[type="checkbox"]').forEach(cb=>{
+    cb.checked=checked;
+    const id=cb.dataset.txId;
+    if(checked) window.billySelectedInvoiceTxIds.add(String(id));
+    else window.billySelectedInvoiceTxIds.delete(String(id));
+    const row=cb.closest('.invoice-compact-item');
+    if(row) row.classList.toggle('is-selected',checked);
+  });
+  updateBillyInvoiceSelectionUI();
+};
+
+window.updateBillyInvoiceSelectionUI=function(){
+  const n=window.billySelectedInvoiceTxIds.size;
+  const info=document.getElementById('invoiceSelectionInfo');
+  const del=document.getElementById('invoiceDeleteSelected');
+  const all=document.getElementById('invoiceSelectAll');
+  const checks=[...document.querySelectorAll('.invoice-row-check input[type="checkbox"]')];
+  if(info) info.textContent=n ? `${n} lançamento${n===1?'':'s'} selecionado${n===1?'':'s'}` : 'Marque os lançamentos para conferir ou excluir';
+  if(del){del.disabled=!n;del.textContent=n?`Excluir selecionado${n===1?'':'s'} (${n})`:'Excluir selecionados'}
+  if(all){
+    all.checked=checks.length>0 && checks.every(x=>x.checked);
+    all.indeterminate=checks.some(x=>x.checked) && !checks.every(x=>x.checked);
+  }
+};
+
+window.deleteBillySelectedInvoiceTransactions=async function(){
+  const ids=[...window.billySelectedInvoiceTxIds];
+  if(!ids.length)return;
+  const act=await openConfirmModal({
+    title:'Excluir lançamentos selecionados',
+    message:`Excluir ${ids.length} lançamento${ids.length===1?'':'s'} desta fatura? Esta ação remove os lançamentos do BILLY.`,
+    buttons:[
+      {key:'cancel',text:'Cancelar',cls:'ghost'},
+      {key:'confirm',text:'Excluir',cls:'red'}
+    ]
+  });
+  if(act!=='confirm')return;
+  state.tx=(state.tx||[]).filter(t=>!ids.includes(String(t.id)));
+  window.billySelectedInvoiceTxIds.clear();
+  save();
+  toast(`${ids.length} lançamento${ids.length===1?' excluído':'s excluídos'}.`);
+  drawInvoice();
+};
+
+window.invoiceCompactList=function(rows){
+  if(!rows.length)return '<div class="empty">Nenhum lançamento nesta fatura.</div>';
+  return `<div class="invoice-transactions">${rows.map(r=>{
+    const sid=String(r.id);
+    const checked=window.billySelectedInvoiceTxIds.has(sid);
+    return `<div class="invoice-compact-item ${checked?'is-selected':''}" data-invoice-tx-id="${esc(sid)}">
+      <label class="invoice-row-check" title="Selecionar lançamento">
+        <input type="checkbox" data-tx-id="${esc(sid)}" ${checked?'checked':''}
+          onchange="toggleBillyInvoiceTxSelection('${esc(sid)}',this.checked)"
+          aria-label="Selecionar ${esc(r.description)}">
+      </label>
+      <div class="invoice-compact-date">${compactDate(r.date)}</div>
+      <div class="invoice-compact-main">
+        <strong>${esc(r.description)}</strong>
+        <small>${iconInline(catEmoji(r.category))} ${esc(r.category)}${r.installment?` · ${esc(r.installment)}`:''}</small>
+      </div>
+      <div class="invoice-compact-side">
+        <div class="invoice-compact-value">${money(r.amount)}</div>
+        ${txMenuHtml(r.id)}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+};
+
+window.drawInvoice=function(){
+  const card=state.cards.find(c=>c.name===selectedInvoiceCard)||state.cards[0];
+  if(!card){
+    $('#view').innerHTML='<div class="panel"><div class="panel-body"><div class="empty">Nenhum cartão cadastrado.</div></div></div>';
+    return;
+  }
+  selectedInvoiceCard=card.name;
+  localStorage.setItem('fin.selectedCard',card.name);
+  const m=month();
+  const rows=sortedTxRows(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.invoiceMonth===m));
+  const validIds=new Set(rows.map(r=>String(r.id)));
+  window.billySelectedInvoiceTxIds=new Set([...window.billySelectedInvoiceTxIds].filter(id=>validIds.has(id)));
+
+  const total=sum(rows,'amount');
+  const paid=invoicePaid(rows);
+  const pending=sum(rows.filter(r=>r.status!=='paid'),'amount');
+  const limit=Number(card.limit||0);
+  const available=limit-sum(state.tx.filter(t=>t.type==='card'&&t.card===card.name&&t.status!=='paid'),'amount');
+  const logoSrc=logoForCard(card.name);
+  const logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(card.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(card.name||'??').slice(0,2).toUpperCase())}</div>`;
+  const toggle=rows.length?`<button class="btn small ${paid?'yellow':'green'}" onclick="setInvoiceStatus('${String(card.name).replace(/'/g,"\\'")}','${m}','${paid?'pending':'paid'}')">${paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+
+  const selectionToolbar=rows.length?`
+    <div class="invoice-selection-toolbar">
+      <div class="invoice-selection-left">
+        <label class="invoice-select-all">
+          <input id="invoiceSelectAll" type="checkbox" onchange="toggleAllBillyInvoiceRows(this.checked)">
+          Selecionar todos
+        </label>
+        <span id="invoiceSelectionInfo" class="invoice-selection-info">Marque os lançamentos para conferir ou excluir</span>
+      </div>
+      <div class="invoice-selection-actions">
+        <button id="invoiceDeleteSelected" class="btn small red" disabled onclick="deleteBillySelectedInvoiceTransactions()">Excluir selecionados</button>
+      </div>
+    </div>`:'';
+
+  $('#view').innerHTML=`<div class="invoice-detail-shell">
+    <div class="invoice-detail-summary">
+      <div class="invoice-detail-card invoice-detail-ident">${logo}<div><div class="k">Cartão</div><div class="v">${esc(card.name)}</div><small class="muted">Fecha dia ${card.closingDay} · vence dia ${card.dueDay}</small></div></div>
+      <div class="invoice-detail-card"><div class="k">Fatura</div><div class="v ${paid?'positive':'negative'}">${money(total)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Pendente</div><div class="v ${pending?'negative':'positive'}">${money(pending)}</div></div>
+      <div class="invoice-detail-card"><div class="k">Disponível</div><div class="v ${available<0?'negative':'positive'}">${money(available)}</div></div>
+      <div class="invoice-detail-actions"><button class="btn small ghost" onclick="setPage('cards')">← Cartões</button>${toggle}</div>
+    </div>
+    ${selectionToolbar}
+    <div class="invoice-detail-list">${invoiceCompactList(rows)}</div>
+  </div>`;
+  updateBillyInvoiceSelectionUI();
+};
+
+/* Remove seleção da capa dos cartões e mantém o layout compacto */
+window.renderCards=function(){
+  const m=month();
+  const sortedCards=[...(state.cards||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+  const rows=sortedCards.map(c=>{
+    const stats=cardMonthMetrics(c.name,m), limit=Number(c.limit)||0, pendingTotal=stats.pendingAll||0, available=limit-pendingTotal;
+    const rawPct=limit?(pendingTotal/limit)*100:0, pct=Math.max(0,Math.min(100,rawPct));
+    const statusHtml=stats.monthRows.length?statusPill(stats.paid?'paid':'pending'):'<span class="pill neutral">Sem fatura</span>';
+    const toggleBtn=stats.monthRows.length?`<button class="btn small ${stats.paid?'yellow':'green'} credit-card-toggle" onclick="setInvoiceStatus('${String(c.name).replace(/'/g,"\\'")}','${m}','${stats.paid?'pending':'paid'}')">${stats.paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+    const logoSrc=logoForCard(c.name), logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(c.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(c.name||'??').slice(0,2).toUpperCase())}</div>`;
+    const usedPct=Math.round(rawPct||0), invoiceTone=stats.total>0?(stats.paid?'green':'blue'):'blue';
+    return `<article class="credit-card-item">
+      <div class="credit-card-head"><div class="credit-card-ident">${logo}<div><strong>${esc(c.name)}</strong><small>Fecha ${c.closingDay} · vence ${c.dueDay}</small></div></div></div>
+      <div class="credit-card-meta-row"><div class="credit-card-status">${statusHtml}</div>${toggleBtn||'<span></span>'}</div>
+      <div class="credit-card-grid">
+        <div class="mini-stat"><span class="label">Fatura de ${monthName(m)}</span><span class="value small ${invoiceTone}">${money(stats.total)}</span></div>
+        <div class="mini-stat"><span class="label">Disponível</span><span class="value small ${available<0?'red':'green'}">${money(available)}</span></div>
+        <div class="mini-stat"><span class="label">Limite</span><span class="value small">${money(limit)}</span></div>
+      </div>
+      <div class="usage-block"><div class="usage-head"><span><strong>Uso ${usedPct}%</strong></span><span>${money(pendingTotal)} pendente</span></div><div class="progress"><span style="width:${pct}%"></span></div></div>
+      <div class="credit-card-top-actions"><button class="btn small primary" onclick="showCardInvoices(${JSON.stringify(c.name).replace(/"/g,'&quot;')})">Ver fatura</button>${cardActionMenuHtml(c.id)}</div>
+    </article>`;
+  }).join('');
+  $('#view').innerHTML=panel('Cartões cadastrados',
+    `<div class="toolbar"><button class="btn primary" onclick="openImportInvoice()">⇩ Importar fatura</button><button class="btn primary" onclick="openCard()">+ Novo cartão</button></div>`,
+    `<div class="cards-catalog">${rows||'<div class="empty">Nenhum cartão cadastrado.</div>'}</div>`);
+};
+</script>
+
 </body>
 </html>
