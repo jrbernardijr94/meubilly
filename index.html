@@ -4883,5 +4883,503 @@ window.renderCards=function(){
 };
 </script>
 
+
+<style id="v129-card-improvements">
+.invoice-selection-info strong{
+  color:var(--text);
+}
+.invoice-selection-total{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:6px 9px;border-radius:10px;
+  border:1px solid rgba(34,211,238,.24);
+  background:rgba(14,165,233,.08);
+  color:#67e8f9;font-weight:900;font-size:12px;
+}
+body.light-theme .invoice-selection-total{
+  background:#ecfeff;border-color:#a5e6ee;color:#087f8c;
+}
+.edit-scope-box{
+  margin-top:4px;padding:12px;border:1px solid var(--line);
+  border-radius:14px;background:rgba(56,189,248,.05)
+}
+.edit-scope-title{font-size:12px;font-weight:900;margin-bottom:8px;color:var(--text)}
+.edit-scope-options{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.edit-scope-choice{
+  display:flex;gap:8px;align-items:flex-start;padding:10px;
+  border:1px solid var(--line);border-radius:12px;cursor:pointer;
+  background:var(--panel2,#0b1220)
+}
+.edit-scope-choice input{margin-top:2px;accent-color:#14b8a6}
+.edit-scope-choice strong{display:block;font-size:12px}
+.edit-scope-choice small{display:block;color:var(--muted);font-size:10.5px;margin-top:2px}
+body.light-theme .edit-scope-choice{background:#fff}
+@media(max-width:760px){
+  .edit-scope-options{grid-template-columns:1fr}
+  .invoice-selection-left{width:100%}
+  .invoice-selection-total{margin-left:auto}
+}
+</style>
+
+<script id="v129-card-functions">
+function v129InstallmentInfo(t){
+  const parsed=installmentParts(t?.installment||'');
+  return {
+    index:Number(t?.installmentIndex||parsed?.index||0),
+    total:Number(t?.installmentTotal||parsed?.total||0)
+  };
+}
+function v129SameInstallmentSeries(base,t){
+  if(!base||!t||base.id===t.id||base.type!=='card'||t.type!=='card')return false;
+  if(base.installmentGroup && t.installmentGroup===base.installmentGroup)return true;
+  if(base.importSeriesKey && t.importSeriesKey===base.importSeriesKey)return true;
+
+  const bi=v129InstallmentInfo(base), ti=v129InstallmentInfo(t);
+  if(!bi.total||!ti.total||bi.total!==ti.total)return false;
+  const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase().replace(/\s+/g,' ');
+  return String(base.card||'')===String(t.card||'') && norm(base.description)===norm(t.description);
+}
+function v129HasFutureInstallments(r){
+  if(!r||r.type!=='card')return false;
+  const b=v129InstallmentInfo(r);
+  if(!b.total||b.total<=1)return false;
+  return (state.tx||[]).some(t=>{
+    if(!v129SameInstallmentSeries(r,t))return false;
+    const ti=v129InstallmentInfo(t);
+    return ti.index>b.index || String(t.invoiceMonth||'')>String(r.invoiceMonth||'');
+  });
+}
+function v129FutureInstallments(r){
+  const b=v129InstallmentInfo(r);
+  return (state.tx||[]).filter(t=>{
+    if(!v129SameInstallmentSeries(r,t))return false;
+    const ti=v129InstallmentInfo(t);
+    return ti.index>b.index || String(t.invoiceMonth||'')>String(r.invoiceMonth||'');
+  });
+}
+
+/* Editar lançamento: permite somente esta parcela ou esta + próximas */
+window.openTx=function(type='expense', id=null){
+  editing=id;
+  let r=id?state.tx.find(x=>x.id===id):{type,date:new Date().toISOString().slice(0,10),invoiceMonth:month(),status:'pending'};
+  $('#modalTitle').textContent=(id?'Editar ':'Novo ')+(type==='income'?'receita':type==='expense'?'despesa':'lançamento no cartão');
+
+  let statusField=type==='card'
+    ?`<input type="hidden" name="status" value="${r.status||'pending'}">`
+    :`<div class="field"><label>Situação</label><select name="status"><option value="pending" ${r.status!=='paid'?'selected':''}>Pendente</option><option value="paid" ${r.status==='paid'?'selected':''}>Pago</option></select></div>`;
+
+  let expenseRepeat=type==='expense'&&!id
+    ?`<div class="field"><label>Tipo de conta</label><select name="repeatMode" id="repeatMode" onchange="toggleExpenseRepeat()"><option value="single">Única</option><option value="recurring">Recorrente mensal</option></select></div><div class="field" id="repeatBox" style="display:none"><label>Quantas vezes lançar?</label><input type="number" min="2" max="60" name="repeatCount" value="3"></div><div class="field full"><small class="muted">Recorrente lança o mesmo valor nos próximos meses, sem dividir o valor.</small></div>`
+    :'';
+
+  let scopeBox='';
+  if(type==='card'&&id&&v129HasFutureInstallments(r)){
+    scopeBox=`<div class="field full edit-scope-box">
+      <div class="edit-scope-title">Aplicar esta edição em:</div>
+      <div class="edit-scope-options">
+        <label class="edit-scope-choice">
+          <input type="radio" name="_editScope" value="single" checked>
+          <span><strong>Somente esta parcela</strong><small>Altera apenas ${esc(r.installment||'este lançamento')}.</small></span>
+        </label>
+        <label class="edit-scope-choice">
+          <input type="radio" name="_editScope" value="future">
+          <span><strong>Esta e as próximas</strong><small>Replica descrição, categoria, valor e cartão nas parcelas futuras.</small></span>
+        </label>
+      </div>
+    </div>`;
+  }
+
+  let cardFields=type==='card'
+    ?`<div class="field"><label>Cartão</label><select name="card">${cardOptions(r.card)}</select></div>
+      <div class="field"><label>Mês da fatura</label><input type="month" name="invoiceMonth" value="${r.invoiceMonth||month()}"></div>
+      ${!id
+        ?`<div class="field"><label>Tipo</label><select name="paymentMode" id="paymentMode" onchange="toggleInstallments()"><option value="single">Parcela única</option><option value="installments">Parcelado</option></select></div>
+          <div class="field" id="installmentsBox" style="display:none"><label>Nº de parcelas</label><input type="number" min="2" max="60" name="installmentsCount" value="2"></div>
+          <div class="field full"><small class="muted">No parcelado, informe o valor total da compra. O BILLY divide e cria automaticamente as parcelas nas próximas faturas.</small></div>`
+        :`<div class="field"><label>Parcela</label><input name="installment" value="${r.installment||''}" placeholder="Ex: 3/10"></div>`}
+      ${scopeBox}`
+    :'';
+
+  $('#modalBody').innerHTML=`<div class="form-grid">
+    <input type="hidden" name="id" value="${id||''}">
+    <input type="hidden" name="type" value="${type}">
+    <div class="field full"><label>Descrição</label><input name="description" required value="${esc(r.description||'')}"></div>
+    <div class="field"><label>Categoria</label><select name="category">${categoryOptions(r.category,type==='income'?'income':'expense')}</select></div>
+    <div class="field"><label>${type==='card'&&!id?'Valor total / valor':'Valor'}</label><input name="amount" required value="${r.amount||''}"></div>
+    <div class="field"><label>Data</label><input type="date" name="date" required value="${r.date||''}"></div>
+    ${statusField}${expenseRepeat}${cardFields}
+  </div>`;
+  openModal(saveTx);
+};
+
+/* Salvar edição de parcela com escopo */
+window.saveTx=function(fd){
+  let obj=Object.fromEntries(fd.entries());
+  obj.amount=parseBR(obj.amount);
+  const editScope=obj._editScope||'single';
+  delete obj._editScope;
+
+  if(obj.id){
+    let i=state.tx.findIndex(x=>String(x.id)===String(obj.id));
+    if(i<0)return;
+    const before={...state.tx[i]};
+    state.tx[i]={...state.tx[i],...obj};
+    delete state.tx[i].repeatMode;
+    delete state.tx[i].repeatCount;
+
+    if(before.type==='card'&&editScope==='future'){
+      const future=v129FutureInstallments(before);
+      future.forEach(t=>{
+        t.description=obj.description;
+        t.category=obj.category;
+        t.card=obj.card;
+        t.amount=obj.amount;
+      });
+      save();
+      toast(`Lançamento e ${future.length} parcela${future.length===1?' futura':'s futuras'} atualizados.`);
+      if(page==='cardInvoice')setTimeout(drawInvoice,0);
+      return;
+    }
+    save();
+    toast('Lançamento salvo.');
+    if(page==='cardInvoice')setTimeout(drawInvoice,0);
+    return;
+  }
+
+  if(obj.type==='expense'&&obj.repeatMode==='recurring'){
+    let n=Math.max(2,Number(obj.repeatCount||2));
+    let rows=makeRecurringExpenseRows(obj,n);
+    rows.forEach(r=>state.tx.push(r));
+    save();toast(`${n} contas recorrentes lançadas.`);return;
+  }
+
+  if(obj.type==='card'&&obj.paymentMode==='installments'){
+    let n=Math.max(2,Number(obj.installmentsCount||2));
+    let total=obj.amount;
+    let base=Math.floor((total/n)*100)/100;
+    let acc=0;
+    let group=uid();
+    for(let i=1;i<=n;i++){
+      let amt=i===n?Math.round((total-acc)*100)/100:base;
+      acc+=amt;
+      let row={...obj,id:uid(),amount:amt,status:'pending',installment:`${i}/${n}`,installmentIndex:i,installmentTotal:n,installmentGroup:group,invoiceMonth:addMonthsKey(obj.invoiceMonth||month(),i-1),date:addMonthsISO(obj.date,i-1)};
+      delete row.paymentMode;delete row.installmentsCount;
+      state.tx.push(row);
+    }
+    save();toast(`${n} parcelas lançadas nas próximas faturas.`);return;
+  }
+
+  delete obj.paymentMode;delete obj.installmentsCount;delete obj.repeatMode;delete obj.repeatCount;
+  obj.id=uid();
+  state.tx.push(obj);
+  save();toast('Lançamento salvo.');
+};
+
+/* Soma dinâmica dos lançamentos selecionados */
+window.updateBillyInvoiceSelectionUI=function(){
+  const ids=[...window.billySelectedInvoiceTxIds];
+  const n=ids.length;
+  const total=(state.tx||[]).filter(t=>ids.includes(String(t.id))).reduce((s,t)=>s+Number(t.amount||0),0);
+  const info=document.getElementById('invoiceSelectionInfo');
+  const totalEl=document.getElementById('invoiceSelectionTotal');
+  const del=document.getElementById('invoiceDeleteSelected');
+  const all=document.getElementById('invoiceSelectAll');
+  const checks=[...document.querySelectorAll('.invoice-row-check input[type="checkbox"]')];
+
+  if(info) info.textContent=n ? `${n} lançamento${n===1?'':'s'} selecionado${n===1?'':'s'}` : 'Marque os lançamentos para conferir ou excluir';
+  if(totalEl) totalEl.textContent=n?`Total selecionado: ${money(total)}`:'Total selecionado: R$ 0,00';
+  if(del){del.disabled=!n;del.textContent=n?`Excluir selecionado${n===1?'':'s'} (${n})`:'Excluir selecionados'}
+  if(all){
+    all.checked=checks.length>0 && checks.every(x=>x.checked);
+    all.indeterminate=checks.some(x=>x.checked) && !checks.every(x=>x.checked);
+  }
+};
+
+/* Recria drawInvoice apenas para incluir a caixa de soma */
+const _v129DrawInvoice=window.drawInvoice;
+window.drawInvoice=function(){
+  _v129DrawInvoice();
+  const toolbar=document.querySelector('.invoice-selection-toolbar');
+  const left=toolbar?.querySelector('.invoice-selection-left');
+  if(left&&!document.getElementById('invoiceSelectionTotal')){
+    left.insertAdjacentHTML('beforeend','<span id="invoiceSelectionTotal" class="invoice-selection-total">Total selecionado: R$ 0,00</span>');
+  }
+  updateBillyInvoiceSelectionUI();
+};
+
+/* Página de cartões: inclui lançamento manual */
+window.renderCards=function(){
+  const m=month();
+  const sortedCards=[...(state.cards||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}));
+  const rows=sortedCards.map(c=>{
+    const stats=cardMonthMetrics(c.name,m),limit=Number(c.limit)||0,pendingTotal=stats.pendingAll||0,available=limit-pendingTotal;
+    const rawPct=limit?(pendingTotal/limit)*100:0,pct=Math.max(0,Math.min(100,rawPct));
+    const statusHtml=stats.monthRows.length?statusPill(stats.paid?'paid':'pending'):'<span class="pill neutral">Sem fatura</span>';
+    const toggleBtn=stats.monthRows.length?`<button class="btn small ${stats.paid?'yellow':'green'} credit-card-toggle" onclick="setInvoiceStatus('${String(c.name).replace(/'/g,"\\'")}','${m}','${stats.paid?'pending':'paid'}')">${stats.paid?'Marcar pendente':'Marcar pago'}</button>`:'';
+    const logoSrc=logoForCard(c.name),logo=logoSrc?`<img class="credit-card-logo" src="${logoSrc}" alt="${esc(c.name)}">`:`<div class="credit-card-logo" style="display:grid;place-items:center;font-weight:900">${esc(String(c.name||'??').slice(0,2).toUpperCase())}</div>`;
+    const usedPct=Math.round(rawPct||0),invoiceTone=stats.total>0?(stats.paid?'green':'blue'):'blue';
+    return `<article class="credit-card-item">
+      <div class="credit-card-head"><div class="credit-card-ident">${logo}<div><strong>${esc(c.name)}</strong><small>Fecha ${c.closingDay} · vence ${c.dueDay}</small></div></div></div>
+      <div class="credit-card-meta-row"><div class="credit-card-status">${statusHtml}</div>${toggleBtn||'<span></span>'}</div>
+      <div class="credit-card-grid">
+        <div class="mini-stat"><span class="label">Fatura de ${monthName(m)}</span><span class="value small ${invoiceTone}">${money(stats.total)}</span></div>
+        <div class="mini-stat"><span class="label">Disponível</span><span class="value small ${available<0?'red':'green'}">${money(available)}</span></div>
+        <div class="mini-stat"><span class="label">Limite</span><span class="value small">${money(limit)}</span></div>
+      </div>
+      <div class="usage-block"><div class="usage-head"><span><strong>Uso ${usedPct}%</strong></span><span>${money(pendingTotal)} pendente</span></div><div class="progress"><span style="width:${pct}%"></span></div></div>
+      <div class="credit-card-top-actions"><button class="btn small primary" onclick="showCardInvoices(${JSON.stringify(c.name).replace(/"/g,'&quot;')})">Ver fatura</button>${cardActionMenuHtml(c.id)}</div>
+    </article>`;
+  }).join('');
+
+  $('#view').innerHTML=panel(
+    'Cartões cadastrados',
+    `<div class="toolbar">
+      <button class="btn primary" onclick="openTx('card')">+ Lançamento manual</button>
+      <button class="btn primary" onclick="openImportInvoice()">⇩ Importar fatura</button>
+      <button class="btn primary" onclick="openCard()">+ Novo cartão</button>
+    </div>`,
+    `<div class="cards-catalog">${rows||'<div class="empty">Nenhum cartão cadastrado.</div>'}</div>`
+  );
+};
+</script>
+
+
+<script id="v130-nubank-csv-ofx">
+/* V130 - suporte nativo a CSV do Nubank + OFX */
+
+function v130OfxTag(block, tag){
+  const xml = String(block||'');
+  let m = xml.match(new RegExp('<'+tag+'[^>]*>([^<\\r\\n]+)', 'i'));
+  return m ? String(m[1]||'').trim() : '';
+}
+
+function v130ParseOfxDate(raw, fallbackMonth){
+  const s=String(raw||'').trim();
+  const m=s.match(/^(\d{4})(\d{2})(\d{2})/);
+  if(m) return `${m[1]}-${m[2]}-${m[3]}`;
+  return (fallbackMonth||month())+'-01';
+}
+
+function v130ParseOfxImport(text,defaults={}){
+  const raw=String(text||'');
+  const rows=[],errors=[];
+  const blocks=raw.match(/<STMTTRN>[\s\S]*?(?=<STMTTRN>|<\/BANKTRANLIST>|<\/CCSTMTRS>|<\/STMTRS>|$)/gi)||[];
+
+  blocks.forEach((block,idx)=>{
+    const type=v130OfxTag(block,'TRNTYPE').toUpperCase();
+    const amountRaw=v130OfxTag(block,'TRNAMT');
+    const amountNum=Number(String(amountRaw).replace(',','.'));
+    const desc=v130OfxTag(block,'NAME')||v130OfxTag(block,'MEMO')||`Lançamento ${idx+1}`;
+    const memo=v130OfxTag(block,'MEMO');
+    const fullDesc=(desc && memo && !String(desc).toLowerCase().includes(String(memo).toLowerCase()))
+      ? `${desc} ${memo}`.trim()
+      : desc;
+    const fitid=v130OfxTag(block,'FITID');
+
+    // Em cartão de crédito OFX, compras normalmente vêm negativas.
+    // Pagamentos/créditos entram positivos e devem ser ignorados.
+    if(!Number.isFinite(amountNum)) return;
+    if(amountNum>=0) return;
+    if(/\b(payment|credit|dep|directdep)\b/i.test(type)) return;
+    if(/\bpagamento recebido\b/i.test(fullDesc)) return;
+
+    const data=v130ParseOfxDate(v130OfxTag(block,'DTPOSTED'),defaults.mes_fatura||month());
+    const auto=installmentParts(fullDesc);
+    const parcelas=auto?auto.total:1;
+    const parcelaAtual=auto?auto.index:1;
+
+    rows.push({
+      type:'card',
+      date:data,
+      description:fullDesc,
+      category:suggestCategoryForDescription(fullDesc),
+      amount:Math.abs(amountNum),
+      card:defaults.cartao||'',
+      invoiceMonth:defaults.mes_fatura||month(),
+      status:'pending',
+      installment:parcelas>1?`${parcelaAtual}/${parcelas}`:'',
+      installmentIndex:parcelaAtual,
+      installmentTotal:parcelas,
+      importId:fitid||'',
+      source:'import-ofx'
+    });
+  });
+
+  if(!blocks.length) errors.push('Nenhum lançamento OFX foi encontrado.');
+  if(blocks.length && !rows.length) errors.push('O OFX foi lido, mas não encontrei compras para importar.');
+  return {rows,errors};
+}
+
+const _v130OriginalParseInvoiceImport = parseInvoiceImport;
+parseInvoiceImport=function(text,defaults={}){
+  const raw=cleanImportText(text);
+  if(/<OFX>|<STMTTRN>|OFXHEADER:/i.test(raw)){
+    return v130ParseOfxImport(raw,defaults);
+  }
+
+  if(!raw) return {rows:[],errors:['Nenhum conteúdo encontrado.']};
+  const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  if(!lines.length) return {rows:[],errors:['Nenhuma linha encontrada.']};
+
+  const delimiter=detectCsvDelimiter(lines[0]);
+  const headers=csvSplitLine(lines[0],delimiter).map(normalizeHeader);
+
+  // Suporte explícito ao CSV oficial do Nubank:
+  // date,title,amount
+  const isNubankCsv=headers.includes('date') && headers.includes('title') && headers.includes('amount');
+  if(isNubankCsv){
+    const map={};headers.forEach((h,i)=>map[h]=i);
+    const rows=[],errors=[];
+    for(let li=1;li<lines.length;li++){
+      const parts=csvSplitLine(lines[li],delimiter);
+      const dataRaw=parts[map.date]||'';
+      const descricao=String(parts[map.title]||'').trim();
+      const valorRaw=parts[map.amount]||'';
+      if(!descricao||!valorRaw) continue;
+
+      const valor=parseBR(valorRaw);
+
+      // No CSV do Nubank, "Pagamento recebido" é negativo.
+      // Ignoramos pagamentos, estornos/créditos e qualquer valor <= 0.
+      if(valor<=0) continue;
+      if(/\bpagamento recebido\b/i.test(descricao)) continue;
+      if(/\b(estorno|credito recebido|crédito recebido)\b/i.test(descricao)) continue;
+
+      const auto=installmentParts(descricao);
+      let parcelaAtual=auto?auto.index:1;
+      let parcelas=auto?auto.total:1;
+
+      if(parcelaAtual<1||parcelas<1||parcelaAtual>parcelas){
+        errors.push(`Linha ${li+1}: parcela inválida ${parcelaAtual}/${parcelas} em ${descricao}.`);
+        continue;
+      }
+
+      rows.push({
+        type:'card',
+        date:parseDateFlexible(dataRaw,defaults.mes_fatura||month()),
+        description:descricao,
+        category:suggestCategoryForDescription(descricao),
+        amount:Math.abs(valor),
+        card:defaults.cartao||'',
+        invoiceMonth:defaults.mes_fatura||month(),
+        status:'pending',
+        installment:parcelas>1?`${parcelaAtual}/${parcelas}`:'',
+        installmentIndex:parcelaAtual,
+        installmentTotal:parcelas,
+        importId:'',
+        source:'import-nubank-csv'
+      });
+    }
+    if(!rows.length) errors.push('O CSV do Nubank foi lido, mas não encontrei compras para importar.');
+    return {rows,errors};
+  }
+
+  // Para CSV genérico, aceita "title" como descrição também.
+  const headerTokens=['data','date','descricao','title','valor','amount','cartao','mes_fatura','parcela_atual','parcelas','parcelas_total','id_externo'];
+  if(headers.some(h=>headerTokens.includes(h))){
+    const map={};headers.forEach((h,i)=>map[h]=i);
+    const rows=[],errors=[];
+    for(let li=1;li<lines.length;li++){
+      const parts=csvSplitLine(lines[li],delimiter);
+      const get=(...names)=>{
+        for(const n of names){
+          const idx=map[normalizeHeader(n)];
+          if(idx!==undefined) return parts[idx]||'';
+        }
+        return '';
+      };
+      const descricao=get('descricao','descrição','description','title','estabelecimento','historico','lançamento','lancamento');
+      const valorRaw=get('valor','amount','valor_rs','preco');
+      if(!descricao||!valorRaw) continue;
+
+      const valor=parseBR(valorRaw);
+      if(valor<=0) continue;
+      if(/\bpagamento recebido\b/i.test(descricao)) continue;
+
+      const cartao=get('cartao','cartão','card')||defaults.cartao||'';
+      const mes=get('mes_fatura','mês_fatura','mes','invoiceMonth')||defaults.mes_fatura||month();
+      const data=parseDateFlexible(get('data','date','data_compra'),mes);
+      let parcelas=Number(get('parcelas','parcelas_total','total_parcelas','installments')||0);
+      let parcelaAtual=Number(get('parcela_atual','parcela','installment_index')||0);
+      const auto=installmentParts(descricao);
+
+      if(auto&&(!parcelas||!parcelaAtual)){parcelas=auto.total;parcelaAtual=auto.index}
+      if(!parcelas)parcelas=1;
+      if(!parcelaAtual)parcelaAtual=1;
+
+      if(parcelaAtual<1||parcelas<1||parcelaAtual>parcelas){
+        if(auto&&auto.index>=1&&auto.total>=auto.index){parcelaAtual=auto.index;parcelas=auto.total}
+        else{errors.push(`Linha ${li+1}: parcela inválida ${parcelaAtual}/${parcelas} em ${descricao}.`);continue}
+      }
+
+      const categoria=get('categoria','category')||suggestCategoryForDescription(descricao);
+      const installment=parcelas>1?`${parcelaAtual}/${parcelas}`:'';
+      const idExt=get('id_externo','id','external_id');
+
+      rows.push({
+        type:'card',date:data,description:descricao,category:categoria,amount:Math.abs(valor),
+        card:cartao,invoiceMonth:mes,status:'pending',installment,
+        installmentIndex:parcelaAtual,installmentTotal:parcelas,importId:idExt||'',source:'import'
+      });
+    }
+    return {rows,errors};
+  }
+
+  return _v130OriginalParseInvoiceImport(raw,defaults);
+};
+
+const _v130OriginalReadInvoiceFile = readInvoiceFile;
+readInvoiceFile=async function(file){
+  const name=(file.name||'').toLowerCase();
+  if(name.endsWith('.ofx')) return await file.text();
+  return await _v130OriginalReadInvoiceFile(file);
+};
+
+openImportInvoice=function(){
+  const cardOpts=[...(state.cards||[])].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'pt-BR',{sensitivity:'base'}))
+    .map(c=>`<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  const prompt=importPromptText();
+
+  $('#modalTitle').textContent='Importar fatura';
+  $('#modalBody').innerHTML=`
+    <div class="import-flow-steps"><span class="active">1. Enviar</span><span>2. Revisar</span><span>3. Categorizar</span></div>
+    <div class="import-main-card">
+      <div class="import-main-copy">
+        <h4>Envie o arquivo exportado pelo seu banco</h4>
+        <p>O BILLY lê CSV do Nubank, OFX, PDF com texto, Excel e TXT. Nenhum dado é enviado para uma IA.</p>
+      </div>
+      <label class="import-dropzone">
+        <input type="file" accept=".csv,.ofx,.txt,.tsv,.pdf,.xlsx,.xls" onchange="handleInvoiceFile(this)">
+        <span class="import-drop-icon">⇧</span>
+        <strong>Selecionar fatura</strong>
+        <small>CSV · OFX · PDF · Excel · TXT</small>
+      </label>
+      <div id="invoiceFileStatus" class="invoice-file-status"></div>
+    </div>
+    <div class="form-grid import-defaults">
+      <div class="field"><label>Cartão</label><select name="defaultCard">${cardOpts}</select></div>
+      <div class="field"><label>Mês da fatura</label><input type="month" name="defaultInvoiceMonth" value="${month()}"></div>
+      <div class="field full import-hidden-raw">
+        <label>Conteúdo lido</label>
+        <textarea name="invoiceText" rows="4" placeholder="O conteúdo do arquivo aparecerá aqui"></textarea>
+        <button type="button" class="btn primary import-review-now" onclick="reviewInvoiceFromModal()">Revisar lançamentos</button>
+      </div>
+    </div>
+    <div class="import-ai-link">
+      <button type="button" class="btn ghost" onclick="document.getElementById('invoiceAiFallback').classList.toggle('show')">Minha fatura é foto, print ou não foi reconhecida</button>
+    </div>
+    <div class="import-ai-fallback" id="invoiceAiFallback">
+      <h4>Converter com um aplicativo de IA</h4>
+      <p>Use qualquer aplicativo de IA, inclusive opções gratuitas. Envie a imagem/print e cole a instrução abaixo.</p>
+      <textarea id="aiPromptBox" rows="8" readonly>${esc(prompt)}</textarea>
+      <div class="toolbar"><button type="button" class="btn primary" onclick="copyImportPrompt()">Copiar instrução</button></div>
+      <p class="import-file-note">Depois, cole o CSV retornado no campo “Conteúdo lido” acima.</p>
+      <button type="button" class="btn primary import-ai-continue" onclick="reviewInvoiceFromModal()">Revisar lançamentos colados</button>
+    </div>`;
+
+  openModal(prepareInvoiceReview);
+  setModalPrimaryAction('Revisar lançamentos',reviewInvoiceFromModal);
+};
+</script>
+
 </body>
 </html>
