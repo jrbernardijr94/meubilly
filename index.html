@@ -7551,15 +7551,19 @@ body.light-theme .invoice-trash-btn{
     installLogoHome();
   };
 
-  /* Também garante clique após qualquer render */
-  const oldRender=window.render;
-  if(typeof oldRender==='function'){
-    window.render=function(){
-      const r=oldRender.apply(this,arguments);
-      requestAnimationFrame(installLogoHome);
-      return r;
-    };
-  }
+  /* Clique no logo via delegação: não interfere no fluxo de autenticação/render */
+  document.addEventListener('click',function(e){
+    const logo=e.target.closest?.('.brand img,.v116-mobile-brand img');
+    if(!logo)return;
+    e.preventDefault();
+    if(typeof setPage==='function') setPage('dashboard');
+  });
+  document.addEventListener('keydown',function(e){
+    const logo=e.target.closest?.('.brand img,.v116-mobile-brand img');
+    if(!logo || (e.key!=='Enter'&&e.key!==' '))return;
+    e.preventDefault();
+    if(typeof setPage==='function') setPage('dashboard');
+  });
 
   requestAnimationFrame(installLogoHome);
 })();
