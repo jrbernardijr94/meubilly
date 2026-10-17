@@ -7028,122 +7028,32 @@ body.page-budget .budget-diff{font-size:10.5px!important;white-space:nowrap!impo
 body.light-theme.page-budget .topbar,body.light-theme.page-budget .budget-totals-sticky{background:#fff!important;border-color:#dbe3ed!important;color:#172033!important}body.light-theme.page-budget .budget-total-card{background:#f8fbfd!important;border-color:#d8e4ee!important}body.light-theme.page-budget .budget-revenue-item{background:linear-gradient(180deg,#f0fbf5,#fff)!important;border-color:#b9e6cc!important}body.light-theme.page-budget .budget-expense-item{background:linear-gradient(180deg,#fff5f5,#fff)!important;border-color:#f0c7ca!important}
 </style>
 
-
-<style id="v143-dashboard-clean">
-/* V143 — Dashboard desktop limpo, legível e sem textos cortados */
+<style id="v144-dashboard-final">
 @media(min-width:761px){
-  body.page-dashboard #view{overflow:visible!important}
-  .v143-dashboard{display:grid;gap:14px;min-width:0}
-  .v143-dashboard .v114-dash-hero{padding:0 2px 2px}
-  .v143-dashboard .v114-dash-hero h2{font-size:26px!important}
-  .v143-dashboard .v114-dash-hero p{font-size:13px!important}
-
-  .v143-dashboard .v114-kpis{grid-template-columns:repeat(4,minmax(0,1fr));gap:12px!important}
-  .v143-dashboard .v114-kpi{min-height:112px!important;padding:14px 15px!important}
-  .v143-dashboard .v114-kpi-value{font-size:23px!important;margin-top:10px!important;white-space:nowrap}
-  .v143-dashboard .v114-kpi small{font-size:11px!important}
-
-  .v143-charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
-  .v143-card{min-width:0!important;padding:15px!important;border-radius:18px!important}
-  .v143-card .v114-card-head{margin-bottom:12px!important}
-  .v143-card .v114-card-head strong{font-size:16px!important}
-  .v143-card .v114-card-head button{font-size:12px!important}
-
-  .v143-dashboard .v114-budget{grid-template-columns:132px minmax(0,1fr)!important;gap:18px!important}
-  .v143-dashboard .v114-ring{width:122px!important;height:122px!important}
-  .v143-dashboard .v114-ring:after{inset:16px!important}
-  .v143-dashboard .v114-ring b{font-size:25px!important}
-  .v143-dashboard .v114-budget-main .spent{font-size:23px!important}
-  .v143-dashboard .v114-budget-stats{gap:8px!important}
-  .v143-dashboard .v114-budget-stat{padding:9px!important}
-  .v143-dashboard .v114-budget-stat b{font-size:15px!important}
-
-  .v143-dashboard .v114-category-wrap{grid-template-columns:132px minmax(0,1fr)!important;gap:18px!important}
-  .v143-dashboard .v114-donut{width:122px!important;height:122px!important}
-  .v143-dashboard .v114-donut:after{inset:24px!important}
-  .v143-dashboard .v114-cat-list{gap:7px!important}
-  .v143-dashboard .v114-cat-row{grid-template-columns:10px minmax(120px,1fr) 38px 92px!important;gap:7px!important;font-size:11px!important}
-  .v143-dashboard .v114-cat-row b{font-size:11.5px!important;white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important}
-  .v143-dashboard .v114-cat-row em{font-size:10.5px!important}
-  .v143-dashboard .v114-cat-row span:last-child{font-size:11px!important;white-space:nowrap!important;text-align:right!important}
-
-  .v143-movements{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;min-width:0}
-  .v143-movement-list{display:grid;gap:7px}
-  .v143-movement-row{display:grid;grid-template-columns:64px minmax(160px,1fr) 118px 88px;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(9,16,28,.48);min-width:0}
-  .v143-movement-date{font-size:11px;font-weight:850;white-space:nowrap}
-  .v143-movement-main{min-width:0}
-  .v143-movement-main strong{display:block;font-size:12.5px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .v143-movement-main small{display:block;margin-top:3px;color:var(--muted);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .v143-movement-value{font-size:12.5px;font-weight:900;text-align:right;white-space:nowrap}
-  .v143-status{justify-self:end;min-width:78px;height:30px;padding:0 9px!important;border-radius:999px!important;font-size:10px!important}
-
-  .v143-upcoming-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-  .v143-upcoming-row{display:grid;grid-template-columns:32px minmax(0,1fr) auto;gap:8px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(9,16,28,.48);min-width:0}
-  .v143-upcoming-icon{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#10243a;color:#4dabf7;font-weight:900;font-size:11px}
-  .v143-upcoming-main{min-width:0}
-  .v143-upcoming-main strong{display:block;font-size:12px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .v143-upcoming-main small{display:block;margin-top:2px;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .v143-upcoming-value{text-align:right;white-space:nowrap}
-  .v143-upcoming-value b{display:block;color:var(--red);font-size:11.5px}
-  .v143-upcoming-value small{display:block;color:var(--muted);font-size:9px;margin-top:2px}
-
-  .v143-dashboard .v121-card-totals .invoice-total-list{gap:7px!important}
-  .v143-dashboard .v121-card-totals .invoice-total-item{padding:9px 10px!important;border-radius:12px!important}
-
-  body.light-theme .v143-movement-row,body.light-theme .v143-upcoming-row{background:#f8fbfd!important;border-color:#dbe5ef!important}
+  .v144-dashboard{display:flex;flex-direction:column;gap:16px;min-width:0}
+  .v144-dashboard .v114-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+  .v144-dashboard .v114-kpi{min-height:118px!important;padding:15px!important}
+  .v144-dashboard .v114-kpi-value{font-size:24px!important}
+  .v144-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(315px,360px);gap:14px;align-items:start;min-width:0}
+  .v144-main{display:grid;gap:14px;min-width:0}.v144-charts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px;min-width:0}
+  .v144-card{min-width:0;padding:15px!important;border-radius:18px!important}.v144-card .v114-card-head{margin-bottom:11px!important}.v144-card .v114-card-head strong{font-size:16px!important}.v144-card .v114-card-head button{font-size:11px!important}
+  .v144-dashboard .v114-budget{grid-template-columns:126px minmax(0,1fr)!important;gap:16px!important}.v144-dashboard .v114-ring{width:116px!important;height:116px!important}.v144-dashboard .v114-ring:after{inset:15px!important}.v144-dashboard .v114-ring b{font-size:24px!important}.v144-dashboard .v114-budget-main .spent{font-size:22px!important}
+  .v144-dashboard .v114-category-wrap{grid-template-columns:124px minmax(0,1fr)!important;gap:15px!important}.v144-dashboard .v114-donut{width:116px!important;height:116px!important}.v144-dashboard .v114-donut:after{inset:23px!important}.v144-dashboard .v114-cat-list{gap:7px!important}.v144-dashboard .v114-cat-row{grid-template-columns:9px minmax(0,1fr) 34px 94px!important;gap:7px!important;font-size:11px!important}.v144-dashboard .v114-cat-row b{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+  .v144-accounts{display:grid;gap:12px;min-width:0}.v144-account-list{display:grid;gap:7px}.v144-account-row{display:grid;grid-template-columns:64px minmax(220px,1fr) 118px 92px 36px;gap:10px;align-items:center;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:12px;background:rgba(9,16,28,.5)}.v144-account-row:hover{background:rgba(18,31,49,.62)}.v144-account-date{font-size:11px;font-weight:900;white-space:nowrap}.v144-account-main{min-width:0}.v144-account-main strong{display:block;font-size:12.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v144-account-main small{display:block;margin-top:3px;font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v144-account-value{text-align:right;font-size:12.5px;font-weight:900;white-space:nowrap}.v144-account-status{height:30px!important;min-width:84px!important;padding:0 9px!important;border-radius:999px!important;font-size:10px!important;white-space:nowrap!important}.v144-account-menu .kebab,.v144-account-menu button{width:34px!important;height:34px!important;min-width:34px!important}
+  .v144-upcoming{position:sticky;top:16px;min-width:0}.v144-upcoming-list{display:grid;gap:8px}.v144-upcoming-row{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(9,16,28,.5)}.v144-upcoming-icon{width:32px;height:32px;border-radius:9px;display:grid;place-items:center;background:#10243a;color:#4dabf7;font-weight:900;font-size:11px}.v144-upcoming-copy{min-width:0}.v144-upcoming-copy strong{display:block;font-size:12px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v144-upcoming-copy small{display:block;margin-top:2px;font-size:9.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.v144-upcoming-value{text-align:right;white-space:nowrap}.v144-upcoming-value b{display:block;color:var(--red);font-size:11.5px}.v144-upcoming-value small{display:block;color:var(--muted);font-size:9px;margin-top:2px}
+  body.light-theme .v144-account-row,body.light-theme .v144-upcoming-row{background:#f8fbfd!important;border-color:#dbe5ef!important}
 }
-@media(min-width:761px) and (max-width:1280px){
-  .v143-charts,.v143-movements{grid-template-columns:1fr!important}
-  .v143-upcoming-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-}
-@media(min-width:761px) and (max-width:980px){
-  .v143-dashboard .v114-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .v143-upcoming-grid{grid-template-columns:1fr!important}
-}
+@media(min-width:761px) and (max-width:1280px){.v144-body{grid-template-columns:1fr!important}.v144-upcoming{position:static!important}.v144-charts{grid-template-columns:1fr 1fr!important}}
+@media(min-width:761px) and (max-width:980px){.v144-dashboard .v114-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}.v144-charts{grid-template-columns:1fr!important}.v144-account-row{grid-template-columns:58px minmax(170px,1fr) 108px 84px 34px}}
 </style>
-<script id="v143-dashboard-clean-js">
+<script id="v144-dashboard-final-js">
 (function(){
-  const previousDashboardV143=renderDashboard;
-  function txRowsCompact(rows,type){
-    const visible=rows.slice(0,3);
-    if(!visible.length)return '<div class="empty">Nenhum lançamento neste mês.</div>';
-    return `<div class="v143-movement-list">${visible.map(r=>`<div class="v143-movement-row"><div class="v143-movement-date">${compactDate(r.date)}</div><div class="v143-movement-main"><strong title="${esc(r.description)}">${esc(r.description)}</strong><small>${iconInline(catEmoji(r.category))} ${esc(r.category)}</small></div><div class="v143-movement-value ${type==='income'?'positive':'negative'}">${money(r.amount)}</div><button class="btn ${r.status==='paid'?'green':'yellow'} v143-status" onclick="toggleStatus('${r.id}')">${r.status==='paid'?'Pago':'Pendente'}</button></div>`).join('')}</div>`;
-  }
-  function upcomingCompact(rows){
-    if(!rows.length)return '<div class="empty">Nenhum vencimento pendente neste mês.</div>';
-    return `<div class="v143-upcoming-grid">${rows.slice(0,6).map(x=>`<div class="v143-upcoming-row"><div class="v143-upcoming-icon">${x.kind}</div><div class="v143-upcoming-main"><strong title="${esc(x.title)}">${esc(x.title)}</strong><small>${esc(x.sub||'')}</small></div><div class="v143-upcoming-value"><b>${money(x.amount)}</b><small>${fmtDate(x.date)}</small></div></div>`).join('')}</div>`;
-  }
-  function desktopDashboardV143(){
-    const m=month(),t=totals(m),b=budgetStats(m),c=cats(m),up=upcoming(m),pct=Math.min(100,Math.round(b.pct||0));
-    const incomeRows=sortedTxRows(state.tx.filter(x=>x.type==='income'&&inMonth(x,m)));
-    const expenseRows=sortedTxRows(state.tx.filter(x=>x.type==='expense'&&inMonth(x,m)));
-    const catRows=c.rows.map((r,i)=>`<div class="v114-cat-row"><span class="v114-cat-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span><b title="${esc(r.name)}">${esc(r.name)}</b><em>${c.total?Math.round(r.value/c.total*100):0}%</em><span>${money(r.value)}</span></div>`).join('');
-    return `<div class="v114-dashboard v143-dashboard">
-      <div class="v114-dash-hero"><div><h2>Olá, ${esc((authProfile?.name||authUser?.user_metadata?.name||'').split(' ')[0]||'')}</h2><p>Seu resumo financeiro de ${monthFull(m).toLowerCase()}.</p></div></div>
-      <div class="v114-kpis">
-        <button class="v114-kpi green" onclick="setPage('incomes')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.income}</span>Receitas</span><div class="v114-kpi-value">${money(t.income)}</div><small>Entradas do mês</small></button>
-        <button class="v114-kpi red" onclick="setPage('expenses')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.expense}</span>Despesas</span><div class="v114-kpi-value">${money(t.expenses)}</div><small>Saídas do mês</small></button>
-        <button class="v114-kpi blue" onclick="setPage('cards')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.card}</span>Cartões</span><div class="v114-kpi-value">${money(t.cards)}</div><small>Pendentes no mês</small></button>
-        <div class="v114-kpi ${t.balance>=0?'green':'red'}"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.balance}</span>Saldo</span><div class="v114-kpi-value">${money(t.balance)}</div><small>Receitas - despesas - cartões</small></div>
-      </div>
-      <div class="v143-charts">
-        <section class="v114-card v143-card"><div class="v114-card-head"><strong>Orçamento do mês</strong><button onclick="setPage('budget')">Ver detalhes ›</button></div><div class="v114-budget"><div class="v114-ring" style="--p:${pct*3.6}deg"><div><b>${pct}%</b><small>utilizado</small></div></div><div class="v114-budget-main"><div class="spent">${money(b.realized)}</div><small>de ${money(b.planned)} planejados</small><div class="v114-bar"><span style="width:${pct}%"></span></div><div class="v114-budget-stats"><div class="v114-budget-stat available"><small>Disponível</small><b>${money(b.available)}</b></div><div class="v114-budget-stat"><small>Planejado</small><b>${money(b.planned)}</b></div></div></div></div></section>
-        <section class="v114-card v143-card"><div class="v114-card-head"><strong>Despesas por categoria</strong><button onclick="setPage('categories')">Ver todas ›</button></div>${c.total?`<div class="v114-category-wrap"><div class="v114-donut" style="--segments:${segs(c.rows,c.total)}"><div><b>${money(c.total)}</b><small>Total</small></div></div><div class="v114-cat-list">${catRows}</div></div>`:'<div class="empty">Ainda não há despesas neste mês.</div>'}</section>
-      </div>
-      <div class="v143-movements">
-        <section class="v114-card v143-card"><div class="v114-card-head"><strong>Entradas do mês</strong><button onclick="setPage('incomes')">Ver todas ›</button></div>${txRowsCompact(incomeRows,'income')}</section>
-        <section class="v114-card v143-card"><div class="v114-card-head"><strong>Saídas do mês</strong><button onclick="setPage('expenses')">Ver todas ›</button></div>${txRowsCompact(expenseRows,'expense')}</section>
-      </div>
-      <section class="v114-card v143-card"><div class="v114-card-head"><strong>Próximos vencimentos</strong><button onclick="setPage('expenses')">Ver todos ›</button></div>${upcomingCompact(up)}</section>
-      <section class="v114-card v143-card v121-card-totals"><div class="v114-card-head"><strong>Cartões — totais das faturas</strong><button onclick="setPage('cards')">Ver cartões ›</button></div>${invoiceTotalsTable(m)}</section>
-    </div>`;
-  }
-  renderDashboard=function(){
-    if(window.matchMedia('(max-width:760px)').matches)return previousDashboardV143();
-    $('#view').innerHTML=desktopDashboardV143();
-  };
+  const previousDashboardV144=renderDashboard;
+  function v144AccountRows(rows,type){const visible=rows.slice(0,5);if(!visible.length)return '<div class="empty">Nenhuma conta neste mês.</div>';return `<div class="v144-account-list">${visible.map(r=>`<div class="v144-account-row"><div class="v144-account-date">${compactDate(r.date)}</div><div class="v144-account-main"><strong title="${esc(r.description)}">${esc(r.description)}</strong><small>${iconInline(catEmoji(r.category))} ${esc(r.category||'Sem categoria')}</small></div><div class="v144-account-value ${type==='income'?'positive':'negative'}">${money(r.amount)}</div><button class="btn ${r.status==='paid'?'green':'yellow'} v144-account-status" onclick="toggleStatus('${r.id}')">${r.status==='paid'?'Pago':'Pendente'}</button><div class="v144-account-menu">${txMenuHtml(r.id)}</div></div>`).join('')}</div>`}
+  function v144Upcoming(rows){if(!rows.length)return '<div class="empty">Nenhum vencimento pendente neste mês.</div>';return `<div class="v144-upcoming-list">${rows.slice(0,6).map(x=>`<div class="v144-upcoming-row"><div class="v144-upcoming-icon">${x.kind}</div><div class="v144-upcoming-copy"><strong title="${esc(x.title)}">${esc(x.title)}</strong><small>${esc(x.sub||'')}</small></div><div class="v144-upcoming-value"><b>${money(x.amount)}</b><small>${fmtDate(x.date)}</small></div></div>`).join('')}</div>`}
+  function desktopDashboardV144(){const m=month(),t=totals(m),b=budgetStats(m),c=cats(m),up=upcoming(m),pct=Math.min(100,Math.round(b.pct||0));const incomeRows=sortedTxRows(state.tx.filter(x=>x.type==='income'&&inMonth(x,m)));const expenseRows=sortedTxRows(state.tx.filter(x=>x.type==='expense'&&inMonth(x,m)));const catRows=c.rows.map((r,i)=>`<div class="v114-cat-row"><span class="v114-cat-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span><b title="${esc(r.name)}">${esc(r.name)}</b><em>${c.total?Math.round(r.value/c.total*100):0}%</em><span>${money(r.value)}</span></div>`).join('');return `<div class="v114-dashboard v144-dashboard"><div class="v114-dash-hero"><div><h2>Olá, ${esc((authProfile?.name||authUser?.user_metadata?.name||'').split(' ')[0]||'')}</h2><p>Seu resumo financeiro de ${monthFull(m).toLowerCase()}.</p></div></div><div class="v114-kpis"><button class="v114-kpi green" onclick="setPage('incomes')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.income}</span>Receitas</span><div class="v114-kpi-value">${money(t.income)}</div><small>Entradas do mês</small></button><button class="v114-kpi red" onclick="setPage('expenses')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.expense}</span>Despesas</span><div class="v114-kpi-value">${money(t.expenses)}</div><small>Saídas do mês</small></button><button class="v114-kpi blue" onclick="setPage('cards')"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.card}</span>Cartões</span><div class="v114-kpi-value">${money(t.cards)}</div><small>Pendentes no mês</small></button><div class="v114-kpi ${t.balance>=0?'green':'red'}"><span class="v114-kpi-top"><span class="v114-kpi-icon">${ICONS.balance}</span>Saldo</span><div class="v114-kpi-value">${money(t.balance)}</div><small>Receitas - despesas - cartões</small></div></div><div class="v144-body"><div class="v144-main"><div class="v144-charts"><section class="v114-card v144-card"><div class="v114-card-head"><strong>Orçamento do mês</strong><button onclick="setPage('budget')">Ver detalhes ›</button></div><div class="v114-budget"><div class="v114-ring" style="--p:${pct*3.6}deg"><div><b>${pct}%</b><small>utilizado</small></div></div><div class="v114-budget-main"><div class="spent">${money(b.realized)}</div><small>de ${money(b.planned)} planejados</small><div class="v114-bar"><span style="width:${pct}%"></span></div><div class="v114-budget-stats"><div class="v114-budget-stat available"><small>Disponível</small><b>${money(b.available)}</b></div><div class="v114-budget-stat"><small>Planejado</small><b>${money(b.planned)}</b></div></div></div></div></section><section class="v114-card v144-card"><div class="v114-card-head"><strong>Despesas por categoria</strong><button onclick="setPage('categories')">Ver todas ›</button></div>${c.total?`<div class="v114-category-wrap"><div class="v114-donut" style="--segments:${segs(c.rows,c.total)}"><div><b>${money(c.total)}</b><small>Total</small></div></div><div class="v114-cat-list">${catRows}</div></div>`:'<div class="empty">Ainda não há despesas neste mês.</div>'}</section></div><div class="v144-accounts"><section class="v114-card v144-card"><div class="v114-card-head"><strong>Contas a receber</strong><button onclick="setPage('incomes')">Ver todas ›</button></div>${v144AccountRows(incomeRows,'income')}</section><section class="v114-card v144-card"><div class="v114-card-head"><strong>Contas a pagar</strong><button onclick="setPage('expenses')">Ver todas ›</button></div>${v144AccountRows(expenseRows,'expense')}</section><section class="v114-card v144-card v121-card-totals"><div class="v114-card-head"><strong>Cartões — totais das faturas</strong><button onclick="setPage('cards')">Ver cartões ›</button></div>${invoiceTotalsTable(m)}</section></div></div><aside class="v114-card v144-card v144-upcoming"><div class="v114-card-head"><strong>Próximos vencimentos</strong><button onclick="setPage('expenses')">Ver todos ›</button></div>${v144Upcoming(up)}</aside></div></div>`}
+  renderDashboard=function(){if(window.matchMedia('(max-width:760px)').matches)return previousDashboardV144();$('#view').innerHTML=desktopDashboardV144();};
 })();
 </script>
-
 </body>
 </html>
