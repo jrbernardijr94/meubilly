@@ -1659,7 +1659,7 @@ function compactDate(d){if(!d)return'';let [y,m,da]=d.split('-');return `${da}/$
 function sortedTxRows(rows){let copy=[...(rows||[])];copy.sort((a,b)=>{let da=a.date||'',db=b.date||'';let ia=a.invoiceMonth||'',ib=b.invoiceMonth||'';return da.localeCompare(db)||ia.localeCompare(ib)||String(a.description||'').localeCompare(String(b.description||''))});return copy}
 function closeTxMenus(){document.querySelectorAll('.tx-menu.open').forEach(menu=>menu.classList.remove('open'))}
 function toggleTxMenu(btn,event){if(event)event.stopPropagation();let menu=btn.nextElementSibling;let willOpen=!menu.classList.contains('open');closeTxMenus();if(willOpen)menu.classList.add('open')}
-function txMenuHtml(id){return `<div class="tx-menu-wrap"><button type="button" class="tx-menu-btn" aria-label="Mais opções" onclick="toggleTxMenu(this,event)">⋮</button><div class="tx-menu"><button type="button" onclick="editTx('${id}')">✏️ Editar</button><button type="button" class="danger" onclick="delTx('${id}')">🗑️ Excluir</button></div></div>`}
+function txMenuHtml(id){let r=(state.tx||[]).find(x=>String(x.id)===String(id));let partial=r&&r.type!=='card'&&r.status!=='paid'?`<button type="button" onclick="openPartialSettlement('${id}')">💰 ${r.type==='income'?'Receber parcial':'Pagar parcial'}</button>`:'';return `<div class="tx-menu-wrap"><button type="button" class="tx-menu-btn" aria-label="Mais opções" onclick="toggleTxMenu(this,event)">⋮</button><div class="tx-menu"><button type="button" onclick="editTx('${id}')">✏️ Editar</button>${partial}<button type="button" class="danger" onclick="delTx('${id}')">🗑️ Excluir</button></div></div>`}
 function cardActionMenuHtml(id){return `<div class="tx-menu-wrap"><button type="button" class="tx-menu-btn card-action-btn" aria-label="Editar ou excluir cartão" title="Editar ou excluir cartão" onclick="toggleTxMenu(this,event)">✏️</button><div class="tx-menu"><button type="button" onclick="editCard('${id}')">✏️ Editar</button><button type="button" class="danger" onclick="delCard('${id}')">🗑️ Excluir</button></div></div>`}
 function categoryCompactList(rows){
  if(!rows.length)return '<div class="empty">Nenhum lançamento nessa categoria neste mês.</div>';
@@ -2133,6 +2133,63 @@ function saveTx(fd){let obj=Object.fromEntries(fd.entries());obj.amount=parseBR(
  }
  delete obj.paymentMode;delete obj.installmentsCount;delete obj.repeatMode;delete obj.repeatCount;obj.id=uid();state.tx.push(obj);save();toast('Lançamento salvo.')}
 function toggleStatus(id){let r=state.tx.find(x=>x.id===id);r.status=r.status==='paid'?'pending':'paid';save()} function setInvoiceStatus(card,m,status){state.tx.filter(t=>t.type==='card'&&t.card===card&&t.invoiceMonth===m).forEach(t=>t.status=status);save();toast(`Fatura ${status==='paid'?'paga':'pendente'}.`); if(page==='cardInvoice') setTimeout(drawInvoice,0)}
+
+function openPartialSettlement(id){
+  const r=(state.tx||[]).find(x=>String(x.id)===String(id));
+  if(!r||r.type==='card')return;
+  const action=r.type==='income'?'Recebimento parcial':'Pagamento parcial';
+  $('#modalTitle').textContent=action;
+  $('#modalBody').innerHTML=`<div class="form-grid">
+    <div class="field full"><label>Conta</label><input value="${esc(r.description||'')}" disabled></div>
+    <div class="field"><label>Valor total</label><input value="${money(r.amount)}" disabled></div>
+    <div class="field"><label>${r.type==='income'?'Valor recebido':'Valor pago'}</label><input name="partialAmount" required inputmode="decimal" placeholder="0,00"></div>
+    <div class="field full"><small class="muted">O BILLY manterá o valor restante como pendente e registrará a parte paga/recebida separadamente.</small></div>
+  </div>`;
+  $('#modalBack').style.display='flex';
+  $('#modalForm').onsubmit=e=>{
+    e.preventDefault();
+    const value=parseBR(new FormData(e.target).get('partialAmount'));
+    const total=Number(r.amount||0);
+    if(!(value>0)){toast('Informe um valor maior que zero.');return}
+    if(value>=total){r.status='paid';save();closeModal();toast(r.type==='income'?'Recebimento concluído.':'Pagamento concluído.');return}
+    const remaining=Math.round((total-value)*100)/100;
+    const paidRow={...r,id:uid(),amount:Math.round(value*100)/100,status:'paid',description:`${r.description} — ${r.type==='income'?'recebido parcial':'pago parcial'}`};
+    r.amount=remaining;
+    r.status='pending';
+    state.tx.push(paidRow);
+    save();closeModal();toast(`${r.type==='income'?'Recebido':'Pago'} ${money(value)}. Restante: ${money(remaining)}.`);
+  };
+}
+
+function openCardAdjustment(kind){
+  const card=selectedInvoiceCard||state.cards?.[0]?.name||'';
+  const invoiceMonth=month();
+  if(!card){toast('Nenhum cartão selecionado.');return}
+  const isAdvance=kind==='advance';
+  $('#modalTitle').textContent=isAdvance?'Adiantar pagamento da fatura':'Lançar estorno na fatura';
+  $('#modalBody').innerHTML=`<div class="form-grid">
+    <div class="field"><label>Cartão</label><input value="${esc(card)}" disabled></div>
+    <div class="field"><label>Fatura</label><input value="${esc(monthName(invoiceMonth))}" disabled></div>
+    <div class="field"><label>Valor</label><input name="adjustAmount" required inputmode="decimal" placeholder="0,00"></div>
+    <div class="field"><label>Data</label><input type="date" name="adjustDate" required value="${new Date().toISOString().slice(0,10)}"></div>
+    <div class="field full"><label>Descrição</label><input name="adjustDescription" value="${isAdvance?'Pagamento antecipado':'Estorno'}"></div>
+    <div class="field full"><small class="muted">Esse valor entra como crédito na fatura e reduz o total pendente. Use pagamento antecipado para valores já pagos antes do fechamento; use estorno para devoluções/cancelamentos.</small></div>
+  </div>`;
+  $('#modalBack').style.display='flex';
+  $('#modalForm').onsubmit=e=>{
+    e.preventDefault();
+    const fd=new FormData(e.target);
+    const value=parseBR(fd.get('adjustAmount'));
+    if(!(value>0)){toast('Informe um valor maior que zero.');return}
+    const row={
+      id:uid(),type:'card',description:String(fd.get('adjustDescription')||'').trim()||(isAdvance?'Pagamento antecipado':'Estorno'),
+      amount:-Math.abs(Math.round(value*100)/100),date:String(fd.get('adjustDate')||new Date().toISOString().slice(0,10)),
+      invoiceMonth,card,category:'Outros',status:'pending',adjustmentKind:kind
+    };
+    state.tx.push(row);save();closeModal();toast(`${isAdvance?'Pagamento antecipado':'Estorno'} de ${money(value)} lançado.`);if(page==='cardInvoice')setTimeout(drawInvoice,0);
+  };
+}
+
 
 function detectCsvDelimiter(line){
  let counts={';':0,',':0,'\t':0},q=false;
@@ -6072,7 +6129,7 @@ function v133InvoiceTable(rows){
         <div class="invoice-cat">${iconInline(catEmoji(r.category))} <span>${esc(r.category||'Sem categoria')}</span></div>
         <div class="invoice-parcel">${esc(inst)}</div>
         <div class="invoice-status ${r.status==='paid'?'paid':''}">${status}</div>
-        <div class="invoice-value">${money(r.amount)}</div>
+        <div class="invoice-value ${Number(r.amount)<0?'positive':''}">${money(r.amount)}</div>
         <div class="invoice-modern-menu">${txMenuHtml(r.id)}</div>
         <div class="invoice-mobile-meta" style="display:none">
           <span class="invoice-date">${compactDate(r.date)}</span>
@@ -6173,6 +6230,8 @@ window.drawInvoice=function(){
       <div class="invoice-detail-actions">
         <button class="btn small ghost" onclick="billyInvoiceBack()">← Cartões</button>
         ${toggle}
+        <button class="btn small ghost" onclick="openCardAdjustment('advance')">+ Adiantar pagamento</button>
+        <button class="btn small ghost" onclick="openCardAdjustment('refund')">+ Estorno</button>
         <button class="btn small primary invoice-manual-btn" onclick="openManualCardEntryForInvoice('${String(card.name).replace(/'/g,"\\'")}','${m}')">+ Lançamento nesta fatura</button>
       </div>
     </div>
@@ -6458,7 +6517,7 @@ function v134InvoiceTable(rows){
         </div>
         <div class="invoice-cat">${iconInline(catEmoji(r.category))} <span>${esc(r.category||'Sem categoria')}</span></div>
         <div class="invoice-status ${r.status==='paid'?'paid':''}">${status}</div>
-        <div class="invoice-value">${money(r.amount)}</div>
+        <div class="invoice-value ${Number(r.amount)<0?'positive':''}">${money(r.amount)}</div>
         <div class="invoice-modern-menu">${txMenuHtml(r.id)}</div>
         <div class="invoice-mobile-meta" style="display:none">
           <span class="invoice-date">${compactDate(r.date)}</span>
@@ -6562,6 +6621,8 @@ window.drawInvoice=function(){
       <div class="invoice-detail-actions">
         <button class="btn small ghost" onclick="billyInvoiceBack()">← Cartões</button>
         ${toggle}
+        <button class="btn small ghost" onclick="openCardAdjustment('advance')">+ Adiantar pagamento</button>
+        <button class="btn small ghost" onclick="openCardAdjustment('refund')">+ Estorno</button>
         <button class="btn small primary invoice-manual-btn" onclick="openManualCardEntryForInvoice('${String(card.name).replace(/'/g,"\\'")}','${m}')">+ Lançamento nesta fatura</button>
       </div>
     </div>
@@ -6972,7 +7033,7 @@ body.light-theme .invoice-modern-row:hover{
           <div class="invoice-parcel">${esc(inst)}</div>
           <div class="invoice-cat">${iconInline(catEmoji(r.category))} <span>${esc(r.category||'Sem categoria')}</span></div>
           <div class="invoice-status ${r.status==='paid'?'paid':''}">${status}</div>
-          <div class="invoice-value">${money(r.amount)}</div>
+          <div class="invoice-value ${Number(r.amount)<0?'positive':''}">${money(r.amount)}</div>
           <div class="invoice-modern-menu">${txMenuHtml(r.id)}</div>
           <div class="invoice-mobile-meta" style="display:none">
             <span class="invoice-date">${compactDate(r.date)}</span>
@@ -7043,6 +7104,17 @@ body.light-theme.page-budget .topbar,body.light-theme.page-budget .budget-totals
 @media(min-width:761px){
   .v120-dashboard-body{grid-template-columns:minmax(0,1fr)!important;}
   .v120-upcoming-card{display:none!important;}
+}
+</style>
+
+
+<style id="v149-adjustments">
+.invoice-detail-actions{flex-wrap:wrap!important}
+.invoice-detail-actions .btn{white-space:nowrap}
+.invoice-modern-row .invoice-value.positive{color:var(--green)!important}
+@media(max-width:760px){
+  .invoice-detail-actions{display:grid!important;grid-template-columns:1fr 1fr!important;gap:7px!important}
+  .invoice-detail-actions .invoice-manual-btn{grid-column:1/-1!important}
 }
 </style>
 
