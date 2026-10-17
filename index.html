@@ -1307,7 +1307,7 @@ function emptyData(){return {categories:[],cards:[],tx:[],budgets:[],categoryMet
 function readLegacyLocalSnapshot(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return JSON.parse(raw);for(let k of LEGACY_KEYS){let legacy=localStorage.getItem(k);if(legacy)return JSON.parse(legacy)}return null}catch(e){return null}}
 const legacyLocalSnapshot=readLegacyLocalSnapshot();
 function billyCurrentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-let state=emptyData(); ensureState(); let currentMonth=billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
+let state=emptyData(); ensureState(); let currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
 let supabaseSyncTimer=null; let supabaseSyncBusy=false; let remoteStateReady=false;
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function workspaceCacheKey(){return authProfile?.current_workspace_id?`fin.workspace.${authProfile.current_workspace_id}.cache`:null}
@@ -1463,7 +1463,7 @@ async function applySupabaseSession(session){
    const workspaceChanged=await preferWorkspaceWithData();
    if(workspaceChanged)await loadSupabaseProfile();
    await loadWorkspaceAccess();
-   currentMonth=billyCurrentMonthKey();
+   currentMonth=localStorage.getItem('fin.currentMonth')||currentMonth||billyCurrentMonthKey();
    localStorage.setItem('fin.currentMonth',currentMonth);
    let remoteHasData=false;
    try{remoteHasData=await loadWorkspaceFinancialDataReliable()}catch(err){console.error('BILLY dados:',err);state=emptyData();ensureState();remoteStateReady=true;toast('Não consegui carregar seus dados. Atualize a página e tente novamente.');}
@@ -2437,7 +2437,7 @@ function budgetIncomeList(rows){
 }
 
 window.addEventListener('focus',()=>{if(authUser&&remoteStateReady&&!supabaseSyncBusy)loadWorkspaceFinancialData().then(()=>render()).catch(()=>{})});
-currentMonth=billyCurrentMonthKey(); localStorage.setItem('fin.currentMonth',currentMonth); localStorage.setItem('fin.month.v59',currentMonth); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
+currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||currentMonth||billyCurrentMonthKey(); localStorage.setItem('fin.currentMonth',currentMonth); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
 
 window.addEventListener('resize',()=>{if(window.innerWidth>760)closeMobileMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
