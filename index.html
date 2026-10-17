@@ -6912,7 +6912,7 @@ body.light-theme .invoice-modern-row:hover{
         }else{
           btn.insertBefore(current,btn.firstChild);
         }
-      }else{
+      }else if(!current.querySelector('svg')){
         current.innerHTML=icons[key];
       }
 
