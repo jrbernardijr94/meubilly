@@ -1307,7 +1307,7 @@ function emptyData(){return {categories:[],cards:[],tx:[],budgets:[],categoryMet
 function readLegacyLocalSnapshot(){try{let raw=localStorage.getItem(STORAGE_KEY);if(raw)return JSON.parse(raw);for(let k of LEGACY_KEYS){let legacy=localStorage.getItem(k);if(legacy)return JSON.parse(legacy)}return null}catch(e){return null}}
 const legacyLocalSnapshot=readLegacyLocalSnapshot();
 function billyCurrentMonthKey(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`}
-let state=emptyData(); ensureState(); let currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
+let state=emptyData(); ensureState(); let currentMonth=billyCurrentMonthKey(); let page=localStorage.getItem('fin.page')||'dashboard'; if(page==='invoices')page='cards'; if(page==='admin'){page='dashboard';localStorage.setItem('fin.page','dashboard');} let selectedInvoiceCard=localStorage.getItem('fin.selectedCard')||''; let selectedAnalysisCategory=localStorage.getItem('fin.selectedCategory')||''; let editing=null; let budgetEditing=false; let systemSettings=loadSettings(); let users=loadUsers(); let currentUser='';
 let supabaseSyncTimer=null; let supabaseSyncBusy=false; let remoteStateReady=false;
 function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4)}
 function workspaceCacheKey(){return authProfile?.current_workspace_id?`fin.workspace.${authProfile.current_workspace_id}.cache`:null}
@@ -1463,7 +1463,7 @@ async function applySupabaseSession(session){
    const workspaceChanged=await preferWorkspaceWithData();
    if(workspaceChanged)await loadSupabaseProfile();
    await loadWorkspaceAccess();
-   currentMonth=localStorage.getItem('fin.currentMonth')||currentMonth||billyCurrentMonthKey();
+   currentMonth=billyCurrentMonthKey();
    localStorage.setItem('fin.currentMonth',currentMonth);
    let remoteHasData=false;
    try{remoteHasData=await loadWorkspaceFinancialDataReliable()}catch(err){console.error('BILLY dados:',err);state=emptyData();ensureState();remoteStateReady=true;toast('Não consegui carregar seus dados. Atualize a página e tente novamente.');}
@@ -2437,7 +2437,7 @@ function budgetIncomeList(rows){
 }
 
 window.addEventListener('focus',()=>{if(authUser&&remoteStateReady&&!supabaseSyncBusy)loadWorkspaceFinancialData().then(()=>render()).catch(()=>{})});
-currentMonth=localStorage.getItem('fin.currentMonth')||localStorage.getItem('fin.month.v59')||currentMonth||billyCurrentMonthKey(); localStorage.setItem('fin.currentMonth',currentMonth); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
+currentMonth=billyCurrentMonthKey(); localStorage.setItem('fin.currentMonth',currentMonth); localStorage.setItem('fin.month.v59',currentMonth); localStorage.setItem('fin.txSort','date_asc'); applyUiPreferences(); autoProgramFromExisting(); renderLogin(); initSupabaseAuth(); setTimeout(()=>{initMonthControls();updateMonthControls();updateSidebarToggle();$('#yearPicker')?.addEventListener('change',setMonthFromControls);$('#monthSelect')?.addEventListener('change',setMonthFromControls);document.getElementById('confirmBack')?.addEventListener('click',e=>{if(e.target===e.currentTarget)closeConfirmModal()});},0);
 
 window.addEventListener('resize',()=>{if(window.innerWidth>760)closeMobileMenu()});
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeMobileMenu()});
@@ -6912,7 +6912,7 @@ body.light-theme .invoice-modern-row:hover{
         }else{
           btn.insertBefore(current,btn.firstChild);
         }
-      }else if(!current.querySelector('svg')){
+      }else{
         current.innerHTML=icons[key];
       }
 
@@ -6920,7 +6920,9 @@ body.light-theme .invoice-modern-row:hover{
     });
   };
 
-  /* V139: removido MutationObserver recursivo que podia travar a interface após o login */
+  const observer=new MutationObserver(()=>v135RefreshSidebarIcons());
+  const side=document.querySelector('.side');
+  if(side)observer.observe(side,{childList:true,subtree:true});
   v135RefreshSidebarIcons();
 
   /* Tabela corrigida: parcela como coluna própria */
@@ -6980,349 +6982,6 @@ body.light-theme .invoice-modern-row:hover{
     v135RefreshSidebarIcons();
     return result;
   };
-})();
-</script>
-
-
-<style id="v138-safe-polish">
-/* V138 - patch seguro: não altera autenticação nem o render principal */
-
-/* Logo clicável */
-.brand img,
-.v116-mobile-brand img{
-  cursor:pointer!important;
-}
-
-/* Filtro recolhido por padrão */
-.invoice-filter-panel{display:none!important}
-.invoice-filter-panel.open{display:block!important}
-
-/* Barra de seleção só aparece quando houver seleção */
-.invoice-selection-toolbar{
-  display:none!important;
-  min-height:44px!important;
-  padding:8px 10px!important;
-  margin:8px 0 10px!important;
-  border-radius:12px!important;
-}
-.invoice-selection-toolbar.has-selection{
-  display:flex!important;
-}
-.invoice-selection-left{
-  display:flex!important;
-  align-items:center!important;
-  gap:8px!important;
-  flex-wrap:wrap!important;
-}
-.invoice-selection-info{
-  font-size:11px!important;
-}
-.invoice-selection-total{
-  margin:0!important;
-  font-size:11px!important;
-  padding:5px 8px!important;
-  border-radius:9px!important;
-}
-.invoice-trash-btn{
-  width:36px!important;
-  height:36px!important;
-  min-width:36px!important;
-  display:grid!important;
-  place-items:center!important;
-  border-radius:10px!important;
-  padding:0!important;
-  color:#fb7185!important;
-  border:1px solid rgba(239,68,68,.30)!important;
-  background:rgba(239,68,68,.10)!important;
-}
-.invoice-trash-btn svg{width:17px!important;height:17px!important}
-
-/* Checkbox do cabeçalho */
-.invoice-head-check{
-  display:grid!important;
-  place-items:center!important;
-}
-.invoice-head-check input{
-  width:15px!important;
-  height:15px!important;
-  margin:0!important;
-  accent-color:#14b8a6!important;
-}
-
-/* Linhas mais compactas */
-.invoice-modern-row{
-  padding-top:8px!important;
-  padding-bottom:8px!important;
-}
-.invoice-cell-main strong{line-height:1.15!important}
-.invoice-cell-main small{margin-top:2px!important}
-
-/* MOBILE */
-@media(max-width:760px){
-  /* reduz o vazio entre topo/logo e conteúdo inicial */
-  .main,
-  body.sidebar-collapsed .main{
-    padding-top:64px!important;
-  }
-  .billy-mobile-dashboard{
-    padding-top:0!important;
-    gap:8px!important;
-  }
-  .billy-mobile-hero{
-    margin-top:0!important;
-    padding-top:0!important;
-    gap:4px!important;
-  }
-  .billy-mobile-hero h1{margin-top:0!important}
-
-  .v116-mobile-brand{
-    height:60px!important;
-    padding:3px 12px!important;
-  }
-  .v116-mobile-brand img{
-    width:76px!important;
-    max-height:50px!important;
-  }
-  .billy-mobile-profile{
-    top:7px!important;
-    right:12px!important;
-    width:46px!important;
-    height:46px!important;
-  }
-
-  /* resumo da fatura mais compacto */
-  .invoice-detail-summary{
-    gap:7px!important;
-    margin-bottom:7px!important;
-  }
-  .invoice-detail-card{
-    padding:10px!important;
-    border-radius:14px!important;
-  }
-  .invoice-detail-card .k{
-    font-size:9px!important;
-    margin-bottom:4px!important;
-  }
-  .invoice-detail-card .v{
-    font-size:17px!important;
-    line-height:1.1!important;
-  }
-  .invoice-detail-card small{
-    font-size:9.5px!important;
-    line-height:1.2!important;
-  }
-  .invoice-detail-actions{
-    gap:7px!important;
-  }
-  .invoice-detail-actions .btn{
-    min-height:41px!important;
-    border-radius:12px!important;
-    font-size:11px!important;
-  }
-
-  /* filtro compacto no mobile */
-  .invoice-compact-tools{
-    margin:6px 0 7px!important;
-    gap:7px!important;
-  }
-  .invoice-filter-toggle{
-    width:auto!important;
-    min-width:94px!important;
-    height:38px!important;
-  }
-  .invoice-results-meta{
-    font-size:10px!important;
-    margin:0!important;
-  }
-  .invoice-filter-panel{margin-bottom:7px!important}
-  .invoice-filter-bar{
-    padding:9px!important;
-    gap:7px!important;
-    border-radius:14px!important;
-  }
-  .invoice-filter-bar input,
-  .invoice-filter-bar select{
-    height:40px!important;
-    font-size:13px!important;
-  }
-
-  /* selecionar todos no mobile */
-  .invoice-mobile-select-all{
-    display:flex!important;
-    align-items:center!important;
-    justify-content:space-between!important;
-    gap:8px!important;
-    margin:4px 2px 7px!important;
-    color:var(--muted)!important;
-    font-size:10.5px!important;
-  }
-  .invoice-mobile-select-all label{
-    display:inline-flex!important;
-    align-items:center!important;
-    gap:6px!important;
-    font-weight:800!important;
-  }
-  .invoice-mobile-select-all input{
-    width:15px!important;
-    height:15px!important;
-    margin:0!important;
-    accent-color:#14b8a6!important;
-  }
-
-  /* cards de lançamentos compactos */
-  .invoice-modern-row{
-    grid-template-columns:22px minmax(0,1fr) auto!important;
-    grid-template-areas:
-      "check main value"
-      "check meta menu"!important;
-    gap:4px 8px!important;
-    min-height:0!important;
-    padding:9px 10px!important;
-    margin-bottom:6px!important;
-    border-radius:13px!important;
-  }
-  .invoice-row-check input{
-    width:15px!important;
-    height:15px!important;
-  }
-  .invoice-cell-main strong{
-    font-size:13px!important;
-  }
-  .invoice-cell-main small{
-    font-size:9.5px!important;
-  }
-  .invoice-value{
-    font-size:13px!important;
-  }
-  .invoice-mobile-meta{
-    gap:4px 7px!important;
-  }
-  .invoice-mobile-meta .invoice-date,
-  .invoice-mobile-meta .invoice-cat,
-  .invoice-mobile-meta .invoice-parcel{
-    font-size:9.5px!important;
-  }
-  .invoice-mobile-meta .invoice-status{
-    font-size:8.5px!important;
-    padding:3px 6px!important;
-  }
-  .invoice-modern-menu{
-    grid-area:menu!important;
-    margin:0!important;
-    align-self:center!important;
-    justify-self:end!important;
-  }
-}
-
-/* Tema claro */
-body.light-theme .invoice-trash-btn{
-  background:#fff1f2!important;
-  border-color:#fecdd3!important;
-  color:#e11d48!important;
-}
-</style>
-
-<script id="v138-safe-behavior">
-(function(){
-  const trashSvg=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 10v6M14 10v6"/></svg>`;
-
-  /* Logo -> início, sem tocar no render/autenticação */
-  document.addEventListener('click',function(e){
-    const img=e.target.closest?.('.brand img,.v116-mobile-brand img');
-    if(!img) return;
-    e.preventDefault();
-    if(typeof setPage==='function') setPage('dashboard');
-  });
-
-  /* Ao abrir uma fatura, o filtro começa fechado */
-  if(typeof showCardInvoices==='function'){
-    const originalShowCardInvoices=showCardInvoices;
-    window.showCardInvoices=showCardInvoices=function(){
-      window.billyInvoiceFilterOpen=false;
-      return originalShowCardInvoices.apply(this,arguments);
-    };
-  }
-
-  /* Seleção compacta + total + lixeira */
-  if(typeof updateBillyInvoiceSelectionUI==='function'){
-    const originalUpdateSelection=updateBillyInvoiceSelectionUI;
-    window.updateBillyInvoiceSelectionUI=updateBillyInvoiceSelectionUI=function(){
-      originalUpdateSelection.apply(this,arguments);
-
-      const ids=[...window.billySelectedInvoiceTxIds];
-      const n=ids.length;
-      const total=(state.tx||[])
-        .filter(t=>ids.includes(String(t.id)))
-        .reduce((s,t)=>s+Number(t.amount||0),0);
-
-      const bar=document.querySelector('.invoice-selection-toolbar');
-      const totalEl=document.getElementById('invoiceSelectionTotal');
-      const del=document.getElementById('invoiceDeleteSelected');
-      const all=document.getElementById('invoiceSelectAll');
-      const mobileAll=document.getElementById('invoiceMobileSelectAll');
-      const checks=[...document.querySelectorAll('.invoice-row-check input[type="checkbox"]')];
-
-      if(bar) bar.classList.toggle('has-selection',n>0);
-      if(totalEl) totalEl.textContent=`Total selecionado: ${money(total)}`;
-
-      if(del){
-        del.classList.add('invoice-trash-btn');
-        del.innerHTML=trashSvg;
-        del.style.display=n?'grid':'none';
-        del.disabled=!n;
-        del.title=n?`Excluir ${n} selecionado${n===1?'':'s'}`:'Excluir selecionados';
-      }
-
-      const allChecked=checks.length>0&&checks.every(x=>x.checked);
-      const someChecked=checks.some(x=>x.checked);
-
-      [all,mobileAll].forEach(cb=>{
-        if(!cb)return;
-        cb.checked=allChecked;
-        cb.indeterminate=someChecked&&!allChecked;
-      });
-    };
-  }
-
-  /* Tabela: checkbox selecionar todos na primeira coluna */
-  if(typeof v134InvoiceTable==='function'){
-    const originalTable=v134InvoiceTable;
-    window.v134InvoiceTable=function(rows){
-      let html=originalTable(rows);
-      html=html.replace(
-        '<div class="invoice-modern-head">\\n        <span></span>',
-        '<div class="invoice-modern-head">\\n        <span class="invoice-head-check"><input id="invoiceSelectAll" type="checkbox" onchange="toggleAllBillyInvoiceRows(this.checked)" aria-label="Selecionar todos"></span>'
-      );
-      return html;
-    };
-  }
-
-  /* Injeta selecionar todos compacto no mobile, sem reescrever drawInvoice */
-  if(typeof drawInvoice==='function'){
-    const originalDrawInvoice=drawInvoice;
-    window.drawInvoice=drawInvoice=function(){
-      const result=originalDrawInvoice.apply(this,arguments);
-
-      const shell=document.querySelector('.invoice-detail-shell');
-      if(!shell) return result;
-
-      let mobileRow=shell.querySelector('.invoice-mobile-select-all');
-      if(!mobileRow){
-        const table=shell.querySelector('.invoice-modern-wrap');
-        if(table){
-          mobileRow=document.createElement('div');
-          mobileRow.className='invoice-mobile-select-all';
-          mobileRow.innerHTML=`<label><input id="invoiceMobileSelectAll" type="checkbox" onchange="toggleAllBillyInvoiceRows(this.checked)"> Selecionar todos</label>`;
-          table.parentNode.insertBefore(mobileRow,table);
-        }
-      }
-
-      if(typeof updateBillyInvoiceSelectionUI==='function'){
-        updateBillyInvoiceSelectionUI();
-      }
-      return result;
-    };
-  }
 })();
 </script>
 
