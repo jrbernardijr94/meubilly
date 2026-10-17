@@ -7118,5 +7118,76 @@ body.light-theme.page-budget .topbar,body.light-theme.page-budget .budget-totals
 }
 </style>
 
+
+<style id="v150-tx-menu-portal-style">
+#billyTxMenuPortal{
+  position:fixed;z-index:2147483000;min-width:170px;max-width:min(230px,calc(100vw - 20px));
+  padding:6px;border-radius:14px;border:1px solid rgba(96,165,250,.30);
+  background:linear-gradient(180deg,#111c35,#0b1528);box-shadow:0 18px 48px rgba(0,0,0,.42);
+  display:none;
+}
+#billyTxMenuPortal.open{display:block}
+#billyTxMenuPortal button{width:100%;display:flex;align-items:center;gap:8px;padding:10px 12px;background:transparent;border:0;color:#f8fafc;border-radius:10px;font-weight:800;text-align:left;cursor:pointer;white-space:nowrap}
+#billyTxMenuPortal button:hover{background:rgba(59,130,246,.16)}
+#billyTxMenuPortal button.danger{color:#fb7185}
+body.light-theme #billyTxMenuPortal{background:#fff;border-color:#cbd8e4;box-shadow:0 18px 48px rgba(15,23,42,.20)}
+body.light-theme #billyTxMenuPortal button{color:#172033}
+body.light-theme #billyTxMenuPortal button:hover{background:#eef6fb}
+</style>
+<script id="v150-tx-menu-portal-script">
+(function(){
+  function portal(){
+    let p=document.getElementById('billyTxMenuPortal');
+    if(!p){
+      p=document.createElement('div');
+      p.id='billyTxMenuPortal';
+      document.body.appendChild(p);
+    }
+    return p;
+  }
+  function closePortal(){
+    const p=document.getElementById('billyTxMenuPortal');
+    if(p){p.classList.remove('open');p.innerHTML='';}
+  }
+  window.closeTxMenus=function(){
+    document.querySelectorAll('.tx-menu.open').forEach(m=>m.classList.remove('open'));
+    closePortal();
+  };
+  window.toggleTxMenu=function(btn,event){
+    if(event){event.preventDefault();event.stopPropagation();}
+    if(!btn)return;
+    const source=btn.nextElementSibling;
+    if(!source||!source.classList.contains('tx-menu'))return;
+    const p=portal();
+    const same=p.dataset.sourceId===String(btn.dataset.menuAnchor||'') && p.classList.contains('open');
+    if(same){closePortal();return;}
+    const anchor='m'+Date.now()+Math.random().toString(36).slice(2);
+    btn.dataset.menuAnchor=anchor;
+    p.dataset.sourceId=anchor;
+    p.innerHTML=source.innerHTML;
+    p.classList.add('open');
+    p.style.visibility='hidden';
+    p.style.display='block';
+    const r=btn.getBoundingClientRect();
+    const pr=p.getBoundingClientRect();
+    let left=Math.min(window.innerWidth-pr.width-10,Math.max(10,r.right-pr.width));
+    let top=r.bottom+6;
+    if(top+pr.height>window.innerHeight-10) top=Math.max(10,r.top-pr.height-6);
+    p.style.left=left+'px';
+    p.style.top=top+'px';
+    p.style.right='auto';p.style.bottom='auto';
+    p.style.visibility='visible';
+  };
+  document.addEventListener('click',function(e){
+    const p=document.getElementById('billyTxMenuPortal');
+    if(!p||!p.classList.contains('open'))return;
+    if(e.target.closest('#billyTxMenuPortal')||e.target.closest('.tx-menu-btn'))return;
+    closePortal();
+  });
+  window.addEventListener('scroll',closePortal,{passive:true});
+  window.addEventListener('resize',closePortal,{passive:true});
+})();
+</script>
+
 </body>
 </html>
